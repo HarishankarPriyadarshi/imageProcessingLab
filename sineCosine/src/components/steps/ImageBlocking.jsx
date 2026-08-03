@@ -4,15 +4,11 @@ import { useState } from "react";
 
 function ImageBlocking() {
 
-const { selectedMatrix } = useMatrix();
+const { selectedMatrix, selectedBlock, setSelectedBlock, blockCreated, setBlockCreated, setPopupMessage } = useMatrix();
 
-const [blocked, setBlocked] = useState(false);
+const [filledCells, setFilledCells] = useState(blockCreated ? 64 : 0);
 
-const [filledCells, setFilledCells] = useState(0);
-
-const [status, setStatus] = useState("Waiting");
-
-const [selectedBlock, setSelectedBlock] = useState(1);
+const [status, setStatus] = useState(blockCreated ? "Ready ✓" : "Waiting");
 
 const [scanRow,setScanRow]=useState(-1);
 
@@ -24,10 +20,15 @@ const progress = Math.round((filledCells / totalPixels) * 100);
 
 const createBlock = () => {
 
+    if (!selectedBlock) {
+      setPopupMessage("Please select a block (B1, B2, B3, or B4) first.");
+      return;
+    }
+
     setScanRow(-1);
 
 
-setBlocked(false);
+setBlockCreated(false);
 
 setFilledCells(0);
 
@@ -53,7 +54,7 @@ if(count === totalPixels){
 
 clearInterval(interval);
 
-setBlocked(true);
+setBlockCreated(true);
 
 setStatus("Ready ✓");
 
@@ -70,8 +71,6 @@ let rowStart = 0;
 let colStart = 0;
 
 switch(selectedBlock){
-
-    
 
 case 1:
 rowStart = 0;
@@ -173,28 +172,28 @@ background:`rgb(${value},${value},${value})`
 
 <div
 className={selectedBlock===1?"overlayBlock activeOverlay":"overlayBlock"}
-onClick={()=>setSelectedBlock(1)}
+onClick={()=>!blockCreated && setSelectedBlock(1)}
 >
 B1
 </div>
 
 <div
 className={selectedBlock===2?"overlayBlock activeOverlay":"overlayBlock"}
-onClick={()=>setSelectedBlock(2)}
+onClick={()=>!blockCreated && setSelectedBlock(2)}
 >
 B2
 </div>
 
 <div
 className={selectedBlock===3?"overlayBlock activeOverlay":"overlayBlock"}
-onClick={()=>setSelectedBlock(3)}
+onClick={()=>!blockCreated && setSelectedBlock(3)}
 >
 B3
 </div>
 
 <div
 className={selectedBlock===4?"overlayBlock activeOverlay":"overlayBlock"}
-onClick={()=>setSelectedBlock(4)}
+onClick={()=>!blockCreated && setSelectedBlock(4)}
 >
 B4
 </div>
@@ -208,32 +207,13 @@ B4
 
 <div className="blockingArrow">
 
-↓
+→
 
 </div>
 
-<div className={blocked?"processingBlock activeBlock":"processingBlock"}>
+<div className={blockCreated?"processingBlock activeBlock":"processingBlock"}>
 
 <h3>Processing Block</h3>
-
-<div className="progressContainer">
-
-<div className="progressTrack">
-
-<div
-className="progressFill"
-style={{ width: `${progress}%` }}
-></div>
-
-</div>
-
-<div className="progressText">
-
-{progress}%
-
-</div>
-
-</div>
 
 <div className="processingMatrixGrid">
 
@@ -283,45 +263,13 @@ Create Processing Block
 
 </button>
 
-<div className="processingFlow">
-
-<div className={filledCells >= 1 ? "flowStep activeFlow" : "flowStep"}>
-📥 Input Matrix
-</div>
-
-<div className="flowArrow">↓</div>
-
-<div className={filledCells >= 5 ? "flowStep activeFlow" : "flowStep"}>
-🔍 Scanning Pixels
-</div>
-
-<div className="flowArrow">↓</div>
-
-<div className={filledCells >= 10 ? "flowStep activeFlow" : "flowStep"}>
-🧩 Creating Block
-</div>
-
-<div className="flowArrow">↓</div>
-
-<div className={blocked ? "flowStep activeFlow" : "flowStep"}>
-✅ Ready For Basis Matrix
-</div>
-
-</div>
-
-<p className="progressStatus">
-
-{status}
-
-</p>
-
 <div className="blockInfo">
 
 <div>
 
 <b>Block ID</b>
 
-<span>B{selectedBlock}</span>
+<span>{selectedBlock ? `B${selectedBlock}` : "Not selected"}</span>
 
 </div>
 
@@ -338,18 +286,6 @@ Create Processing Block
 <b>Total Pixels</b>
 
 <span>64</span>
-
-</div>
-
-<div>
-
-<b>Status</b>
-
-<span>
-
-{status}
-
-</span>
 
 </div>
 

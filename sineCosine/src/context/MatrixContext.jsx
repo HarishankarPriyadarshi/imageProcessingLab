@@ -11,7 +11,13 @@ export const MatrixProvider = ({ children }) => {
   const [frequencyMatrix, setFrequencyMatrix] = useState([]);
 
   // Selected Processing Block (1-4)
-  const [selectedBlock, setSelectedBlock] = useState(1);
+  const [selectedBlock, setSelectedBlock] = useState(null);
+
+  // Whether processing block has been created (Step 2)
+  const [blockCreated, setBlockCreated] = useState(false);
+
+  // Global centered popup message
+  const [popupMessage, setPopupMessage] = useState("");
 
   // Selected Transform
   const [transform, setTransform] = useState("DCT");
@@ -42,6 +48,12 @@ export const MatrixProvider = ({ children }) => {
 
         selectedBlock,
         setSelectedBlock,
+
+        blockCreated,
+        setBlockCreated,
+
+        popupMessage,
+        setPopupMessage,
 
         transform,
         setTransform,
