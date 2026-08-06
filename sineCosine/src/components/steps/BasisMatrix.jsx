@@ -4,19 +4,7 @@ import { useMatrix } from "../../context/MatrixContext";
 
 function BasisMatrix(){
 
-const [transform,setTransform]=useState("DCT");
-
-const [selectedBlock,setSelectedBlock]=useState(1);
-
-const [basisMatrix,setBasisMatrix]=useState([]);
-
-const [progress,setProgress]=useState(0);
-
-const [status,setStatus]=useState("Waiting");
-
-const [selectedVector,setSelectedVector]=useState(0);
-
-const { selectedMatrix } = useMatrix();
+const { selectedMatrix, selectedBlock, transform, setTransform, basisMatrix, setBasisMatrix, basisGenerated, setBasisGenerated } = useMatrix();
 
 if(!selectedMatrix){
    return null;
@@ -60,95 +48,80 @@ selectedMatrix.data
 
 
 
-const generateBasisMatrix=()=>{
+const [selectedCell,setSelectedCell]=useState(null);
 
-setBasisMatrix([]);
+const [calcStep,setCalcStep]=useState(0);
 
-setProgress(0);
-
-setStatus("Generating...");
-
+const computeValue=(u,x)=>{
 const N=8;
-
-const matrix=[];
-
-let row=0;
-
-const interval=setInterval(()=>{
-
-const currentRow=[];
-
-for(let x=0;x<N;x++){
-
-let alpha=
-row===0
-?
-Math.sqrt(1/N)
-:
-Math.sqrt(2/N);
-
-let value;
-
 if(transform==="DCT"){
-
-value=
-
-alpha*
-
-Math.cos(
-
-((2*x+1)*row*Math.PI)/(2*N)
-
-);
-
+const alpha=u===0?Math.sqrt(1/N):Math.sqrt(2/N);
+return alpha*Math.cos(((2*x+1)*u*Math.PI)/(2*N));
 }
+return Math.sqrt(2/(N+1))*Math.sin(((u+1)*(x+1)*Math.PI)/(N+1));
+};
 
-else{
-
-value=
-
-Math.sqrt(2/(N+1))
-
-*
-
-Math.sin(
-
-((row+1)*(x+1)*Math.PI)/(N+1)
-
-);
-
-}
-
-currentRow.push(
-
-value.toFixed(4)
-
-);
-
-}
-
-matrix.push(currentRow);
-
-setBasisMatrix([...matrix]);
-
-row++;
-
-setProgress(
-
-Math.round((row/N)*100)
-
-);
-
-if(row===N){
-
+const generateBasisMatrix=()=>{
+if(!transform || basisGenerated) return;
+const N=8;
+const matrix=Array.from({length:N},()=>Array(N).fill(null));
+setBasisMatrix(matrix.map(r=>[...r]));
+let u=0,x=0;
+const interval=setInterval(()=>{
+matrix[u][x]=computeValue(u,x).toFixed(4);
+setBasisMatrix(matrix.map(r=>[...r]));
+x++;
+if(x>=N){x=0;u++;}
+if(u>=N){
 clearInterval(interval);
-
-setStatus("Completed ✓");
-
+setBasisGenerated(true);
 }
+},60);
+};
 
-},350);
+const cellSteps=(u,x)=>{
+if(transform==="DCT"){
+const num=(2*x+1)*u;
+const angle=(num*Math.PI)/16;
+const cosVal=Math.cos(angle);
+const alpha=u===0?Math.sqrt(1/8):Math.sqrt(2/8);
+return [
+`Step 1 — Formula: C(${u},${x}) = α(u) · cos[ (2x+1)uπ / 2N ]`,
+`Step 2 — Plug in u=${u}, x=${x}: numerator = (2×${x}+1)×${u} = ${num}`,
+`Step 3 — Angle = ${num}π / 16 = ${angle.toFixed(4)} radians`,
+`Step 4 — cos(${angle.toFixed(4)}) = ${cosVal.toFixed(4)}`,
+`Step 5 — Normalization α(u): u=${u} → α = ${u===0?"√(1/8)":"√(2/8)"} = ${alpha.toFixed(4)}`,
+`Step 6 — Final: ${alpha.toFixed(4)} × ${cosVal.toFixed(4)} = ${(alpha*cosVal).toFixed(4)}`
+];
+}
+const angle=((u+1)*(x+1)*Math.PI)/9;
+const sinVal=Math.sin(angle);
+const coeff=Math.sqrt(2/9);
+return [
+`Step 1 — Formula: S(${u},${x}) = √(2/(N+1)) · sin[ (u+1)(x+1)π / (N+1) ]`,
+`Step 2 — Plug in u=${u}, x=${x}: (${u}+1)×(${x}+1) = ${(u+1)*(x+1)}`,
+`Step 3 — Angle = ${(u+1)*(x+1)}π / 9 = ${angle.toFixed(4)} radians`,
+`Step 4 — sin(${angle.toFixed(4)}) = ${sinVal.toFixed(4)}`,
+`Step 5 — Coefficient √(2/9) = ${coeff.toFixed(4)}`,
+`Step 6 — Final: ${coeff.toFixed(4)} × ${sinVal.toFixed(4)} = ${(coeff*sinVal).toFixed(4)}`
+];
+};
 
+const playCalc=()=>{
+if(!selectedCell) return;
+setCalcStep(0);
+let step=0;
+const total=cellSteps((selectedCell?.row??0),selectedCell.col).length;
+const interval=setInterval(()=>{
+step++;
+setCalcStep(step);
+if(step>=total){clearInterval(interval);}
+},700);
+};
+
+const fastForwardCalc=()=>{
+if(!selectedCell) return;
+setCalcStep(cellSteps((selectedCell?.row??0),selectedCell.col).length);
 };
 
 
@@ -180,6 +153,8 @@ the selected transform before performing image compression.
 
 <button
 
+disabled={basisGenerated}
+
 className={
 transform==="DCT"
 ?
@@ -197,6 +172,8 @@ DCT
 </button>
 
 <button
+
+disabled={basisGenerated}
 
 className={
 transform==="DST"
@@ -216,43 +193,19 @@ DST
 
 </div>
 
+<div className="miniFormulaText">
+{!transform ? "Select DCT or DST above" : (
+<div className="equation">
+<div className="leftPart">
+{transform==="DCT" ? "C(u,x) = α(u)·cos" : "S(u,x) = √(2/(N+1))·sin"}
 </div>
-
-
-<div className="controlCard">
-
-<h3>Selected Block</h3>
-
-<div className="blockButtons">
-
-{
-
-[1,2,3,4].map((block)=>(
-
-<button
-
-key={block}
-
-className={
-selectedBlock===block
-?
-"activeBtn"
-:
-""
-}
-
-onClick={()=>setSelectedBlock(block)}
-
->
-
-B{block}
-
-</button>
-
-))
-
-}
-
+<div className="fraction">
+<div className="numerator">{transform==="DCT" ? "(2x+1)uπ" : "(u+1)(x+1)π"}</div>
+<div className="line"></div>
+<div className="denominator">{transform==="DCT" ? "2N" : "N+1"}</div>
+</div>
+</div>
+)}
 </div>
 
 </div>
@@ -262,15 +215,13 @@ B{block}
 
 <div className="basisLayout">
 
+
+
 <div className="basisCard blockCard">
 
-<h3>
+<h3>Selected Processing Block</h3>
 
-Selected Processing Block
-
-</h3>
-
-<div className="selectedBlockPreview">
+<div className="selectedBlockPreview" style={{display:"grid",gridTemplateColumns:"repeat(8,54px)",gap:"4px",width:"fit-content",margin:"20px auto"}}>
 
 {processingBlock.map((row,rowIndex)=>
 
@@ -279,11 +230,8 @@ row.map((value,colIndex)=>(
 <div
 key={rowIndex+"-"+colIndex}
 className="blockPixel"
-style={{
-background:`rgb(${value},${value},${value})`
-}}
+style={{background:`rgb(${value},${value},${value})`,width:"54px",height:"54px"}}
 >
-
 </div>
 
 ))
@@ -292,11 +240,7 @@ background:`rgb(${value},${value},${value})`
 
 </div>
 
-
-
 </div>
-
-
 
 <div className="basisArrow">
 
@@ -339,11 +283,7 @@ basisMatrix.length===0
 
 ?
 
-<div className="waitingText">
-
-Waiting...
-
-</div>
+null
 
 :
 
@@ -366,20 +306,14 @@ row.map((value,colIndex)=>(
 key={rowIndex+"-"+colIndex}
 
 className={
-
-selectedVector===rowIndex
-
+selectedCell && (selectedCell?.row??0)===rowIndex && selectedCell.col===colIndex
 ?
-
 "activeVector"
-
 :
-
 ""
-
 }
 
-onClick={()=>setSelectedVector(rowIndex)}
+onClick={()=>{setSelectedCell({row:rowIndex,col:colIndex});setCalcStep(0);}}
 
 >
 
@@ -403,93 +337,13 @@ onClick={()=>setSelectedVector(rowIndex)}
 
 </div>
 
-<div className="vectorInfoCard">
-
-<h3>
-
-Selected Basis Vector
-
-</h3>
-
-<h2>
-
-u = {selectedVector}
-
-</h2>
-
-<p>
-
-{
-
-selectedVector===0
-
-?
-
-"DC Basis Vector (Lowest Frequency). Represents the average intensity of the image block."
-
-:
-
-selectedVector<=2
-
-?
-
-"Low Frequency Basis Vector. Represents smooth intensity variations."
-
-:
-
-selectedVector<=5
-
-?
-
-"Medium Frequency Basis Vector. Represents texture and moderate details."
-
-:
-
-"High Frequency Basis Vector. Represents edges and sharp transitions."
-
-}
-
-</p>
-
-</div>
-
-<div className="frequencyBar">
-
-{
-
-Array.from({length:8}).map((_,i)=>(
-
-<div
-
-key={i}
-
-className={
-selectedVector===i
-?
-"frequencyCell activeFrequency"
-:
-"frequencyCell"
-}
-
-onClick={()=>setSelectedVector(i)}
-
->
-
-u={i}
-
-</div>
-
-))
-
-}
-
-</div>
-
 </div>
 
 <button
 
 className="generateButton"
+
+disabled={!transform || basisGenerated}
 
 onClick={generateBasisMatrix}
 
@@ -499,235 +353,42 @@ Generate Basis Matrix
 
 </button>
 
-<div className="progressCard">
-
-<h3>
-
-Generation Status
-
-</h3>
-
-<p>
-
-{status}
-
-</p>
-
-<div className="progressBar">
-
-<div
-
-className="progressFill"
-
-style={{
-
-width:`${progress}%`
-
-}}
-
->
-
-{progress}%
-
-</div>
-
-</div>
-
-
-
-</div>
-
-<div className="formulaSection">
-
-<h3>Mathematical Formulation</h3>
-
-{
-transform==="DCT"
-?
-<>
-
-<div className="formulaBox">
-
-<h4>DCT-II Basis Function</h4>
-
-<div className="equation">
-
-<div className="leftPart">
-
-C(u,x)= α(u) × cos
-
-</div>
-
-<div className="fraction">
-
-<div className="numerator">
-
-(2x+1)uπ
-
-</div>
-
-<div className="line"></div>
-
-<div className="denominator">
-
-2N
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-<div className="formulaBox">
-
-<h4>Normalization Factor</h4>
-
-<div className="piecewise">
-
-<div className="pieceRow">
-
-<div>α(u)= √(1/N)</div>
-
-<div>u = 0</div>
-
-</div>
-
-<div className="pieceRow">
-
-<div>α(u)= √(2/N)</div>
-
-<div>u ≠ 0</div>
-
-</div>
-
-</div>
-
-</div>
-
-</>
-
-:
-
-<div className="formulaCard">
-
-<h4>DST Basis Function</h4>
-
-<div className="formulaBox">
-
-<h4>DST Basis Function</h4>
-
-<div className="equation">
-
-<div className="leftPart">
-
-S(u,x)=
-
-√(2/(N+1))
-
-×
-
-sin
-
-</div>
-
-<div className="fraction">
-
-<div className="numerator">
-
-(u+1)(x+1)π
-
-</div>
-
-<div className="line"></div>
-
-<div className="denominator">
-
-N+1
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-</div>
-
-}
-
-</div>
 
 <div className="currentCalculation">
 
 <h3>Current Basis Calculation</h3>
 
-<p>
+{!selectedCell ? (
 
-Selected Vector :
+<p>Click any cell in the matrix above to see its calculation.</p>
 
-<b> u = {selectedVector}</b>
+) : (
 
-</p>
+<>
 
-<p>
+<p>Selected Cell : <b>u = {(selectedCell?.row??0)}, x = {selectedCell.col}</b></p>
 
-Normalization :
+<div className="playControls">
 
-<b>
+<button className="generateButton" onClick={playCalc}>▶ Play</button>
 
-{
-
-selectedVector===0
-
-?
-
-"α(u)=√(1/N)"
-
-:
-
-"α(u)=√(2/N)"
-
-}
-
-</b>
-
-</p>
-
-<p>
-
-Current x :
-
-<b>0 → 7</b>
-
-</p>
-
-<p>
-
-Basis Formula :
-
-</p>
-
-<div className="miniFormula">
-
-{
-
-transform==="DCT"
-
-?
-
-"C(u,x)=α(u) cos((2x+1)uπ / 2N)"
-
-:
-
-"S(u,x)=√(2/(N+1)) sin((u+1)(x+1)π /(N+1))"
-
-}
+<button className="generateButton fastForward" onClick={fastForwardCalc}>⏩ Fast Forward</button>
 
 </div>
+
+<div className="calcSteps">
+
+{cellSteps((selectedCell?.row??0),selectedCell.col).slice(0,calcStep).map((line,i)=>(
+
+<p key={i} className="calcStepLine">{line}</p>
+
+))}
+
+</div>
+
+</>
+
+)}
 
 </div>
 
@@ -778,7 +439,7 @@ if(transform==="DCT"){
 
 const alpha=
 
-selectedVector===0
+(selectedCell?.row??0)===0
 
 ?
 
@@ -794,7 +455,7 @@ alpha*
 
 Math.cos(
 
-((2*x+1)*selectedVector*Math.PI)/16
+((2*x+1)*(selectedCell?.row??0)*Math.PI)/16
 
 );
 
@@ -810,7 +471,7 @@ Math.sqrt(2/9)
 
 Math.sin(
 
-((selectedVector+1)*(x+1)*Math.PI)/9
+(((selectedCell?.row??0)+1)*(x+1)*Math.PI)/9
 
 );
 
@@ -834,7 +495,7 @@ if(transform==="DCT"){
 
 const alpha=
 
-selectedVector===0
+(selectedCell?.row??0)===0
 
 ?
 
@@ -850,7 +511,7 @@ alpha*
 
 Math.cos(
 
-((2*x+1)*selectedVector*Math.PI)/16
+((2*x+1)*(selectedCell?.row??0)*Math.PI)/16
 
 );
 
@@ -866,7 +527,7 @@ Math.sqrt(2/9)
 
 Math.sin(
 
-((selectedVector+1)*(x+1)*Math.PI)/9
+(((selectedCell?.row??0)+1)*(x+1)*Math.PI)/9
 
 );
 
@@ -930,7 +591,7 @@ x = Pixel Position
 
 <div>
 
-u = {selectedVector}
+u = {(selectedCell?.row??0)}
 
 </div>
 
@@ -942,7 +603,7 @@ u = {selectedVector}
 
 {
 
-selectedVector===0
+(selectedCell?.row??0)===0
 
 ?
 
@@ -950,7 +611,7 @@ selectedVector===0
 
 :
 
-selectedVector<=2
+(selectedCell?.row??0)<=2
 
 ?
 
@@ -958,7 +619,7 @@ selectedVector<=2
 
 :
 
-selectedVector<=5
+(selectedCell?.row??0)<=5
 
 ?
 
@@ -1138,103 +799,6 @@ basis vectors during transform coding.
 
 </div>
 
-<div className="pipelineCard">
-
-<h2>
-
-Next Step Preview
-
-</h2>
-
-<p>
-
-The generated basis matrix is now ready for transform computation.
-
-In the next step, the selected image block will be multiplied
-with the basis matrix to obtain the frequency coefficients.
-
-</p>
-
-<div className="pipelineFlow">
-
-<div className="pipelineBox">
-
-<h4>
-
-Selected Block
-
-</h4>
-
-<div>
-
-B{selectedBlock}
-
-</div>
-
-</div>
-
-<div className="pipelineOperator">
-
-×
-
-</div>
-
-<div className="pipelineBox">
-
-<h4>
-
-Basis Matrix
-
-</h4>
-
-<div>
-
-C
-
-</div>
-
-</div>
-
-<div className="pipelineOperator">
-
-×
-
-</div>
-
-<div className="pipelineBox">
-
-<h4>
-
-Transpose
-
-</h4>
-
-<div>
-
-Cᵀ
-
-</div>
-
-</div>
-
-<div className="pipelineOperator">
-
-=
-
-</div>
-
-<div className="pipelineResult">
-
-Frequency
-<br/>
-Coefficients
-
-</div>
-
-</div>
-
-</div>
-
 <div className="equationCard">
 
 <h3>
@@ -1329,49 +893,6 @@ F → Frequency Coefficient Matrix
 
 </div>
 
-<div className="nextStepCard">
-
-<h3>
-
-What will happen in Step 5?
-
-</h3>
-
-<div className="nextSteps">
-
-<div>
-
-✅ Matrix Multiplication
-
-</div>
-
-<div>
-
-✅ Frequency Coefficient Generation
-
-</div>
-
-<div>
-
-✅ DC Component Detection
-
-</div>
-
-<div>
-
-✅ AC Component Calculation
-
-</div>
-
-<div>
-
-✅ Frequency Visualization
-
-</div>
-
-</div>
-
-</div>
 
 
 

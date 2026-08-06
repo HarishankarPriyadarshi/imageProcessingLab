@@ -16,11 +16,15 @@ export const MatrixProvider = ({ children }) => {
   // Whether processing block has been created (Step 2)
   const [blockCreated, setBlockCreated] = useState(false);
 
+  // Basis Matrix (Step 3) - persisted across navigation
+  const [basisMatrix, setBasisMatrix] = useState([]);
+  const [basisGenerated, setBasisGenerated] = useState(false);
+
   // Global centered popup message
   const [popupMessage, setPopupMessage] = useState("");
 
-  // Selected Transform
-  const [transform, setTransform] = useState("DCT");
+  // Selected Transform (used by Step 3 onward)
+  const [transform, setTransform] = useState(null);
 
   // Step 6 : Quantization
   const [qualityFactor, setQualityFactor] = useState(50);
@@ -52,11 +56,17 @@ export const MatrixProvider = ({ children }) => {
         blockCreated,
         setBlockCreated,
 
-        popupMessage,
-        setPopupMessage,
-
         transform,
         setTransform,
+
+        basisMatrix,
+        setBasisMatrix,
+
+        basisGenerated,
+        setBasisGenerated,
+
+        popupMessage,
+        setPopupMessage,
 
         qualityFactor,
         setQualityFactor,

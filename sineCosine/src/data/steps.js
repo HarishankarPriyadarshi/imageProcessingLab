@@ -43,12 +43,6 @@ const steps = [
 },
 {
   id:8,
-  title:"Inverse DCT/DST",
-  description:
-  "Image is reconstructed."
-},
-{
-  id:9,
   title:"Comparison",
   description:
   "Original and reconstructed images are compared."

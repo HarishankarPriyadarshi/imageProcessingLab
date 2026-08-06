@@ -1,5 +1,5 @@
 import "./TransformComputation.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMatrix } from "../../context/MatrixContext";
 
 function TransformComputation() {
@@ -10,19 +10,20 @@ selectedMatrix,
 
 frequencyMatrix,
 
-setFrequencyMatrix
+setFrequencyMatrix,
+
+transform,
+
+selectedBlock
 
 }=useMatrix();
 
 
-const [transform, setTransform] = useState("DCT");
-const [selectedBlock, setSelectedBlock] = useState(1);
+const [progress,setProgress]=useState(frequencyMatrix && frequencyMatrix.length ? 100 : 0);
 
-const [progress,setProgress]=useState(0);
+const [status,setStatus]=useState(frequencyMatrix && frequencyMatrix.length ? "Completed ✓" : "Waiting");
 
-const [status,setStatus]=useState("Waiting");
-
-const [step,setStep]=useState(0);
+const [step,setStep]=useState(frequencyMatrix && frequencyMatrix.length ? 4 : 0);
 
 
 const [selectedCoefficient,setSelectedCoefficient]=useState({
@@ -288,7 +289,15 @@ return result;
 
 };
 
+const prevKey=useRef(selectedBlock+"_"+transform);
+
 useEffect(() => {
+
+const key=selectedBlock+"_"+transform;
+
+if(prevKey.current===key) return;
+
+prevKey.current=key;
 
 setFrequencyMatrix([]);
 
@@ -405,7 +414,7 @@ return(
 
 <h2>
 
-Step 5 : Transform Computation
+Transform Computation
 
 </h2>
 
@@ -416,132 +425,27 @@ Apply the selected transform (DCT/DST) on the selected
 
 </p>
 
-</div>
+<div className="formulaDisplay">
 
-<div className="topControls">
-
-<div className="controlCard">
-
-<h3>
-
-Transform
-
-</h3>
-
-<div className="toggleButtons">
-
-<button
-className={transform==="DCT"?"activeBtn":""}
-onClick={()=>setTransform("DCT")}
->
-
-DCT
-
-</button>
-
-<button
-className={transform==="DST"?"activeBtn":""}
-onClick={()=>setTransform("DST")}
->
-
-DST
-
-</button>
-
-</div>
-
-</div>
-
-<div className="controlCard">
-
-<h3>
-
-Processing Block
-
-</h3>
-
-<div className="blockButtons">
+<h2>
 
 {
 
-[1,2,3,4].map(block=>(
+transform==="DCT"
 
-<button
+?
 
-key={block}
+"F = C × A × Cᵀ"
 
-className={selectedBlock===block?"activeBtn":""}
+:
 
-onClick={()=>setSelectedBlock(block)}
-
->
-
-B{block}
-
-</button>
-
-))
+"F = S × A × Sᵀ"
 
 }
 
-</div>
+</h2>
 
 </div>
-
-</div>
-
-<div className="selectedBlockCard">
-
-
-
-<h3>
-
-Selected Image Block
-
-</h3>
-
-<div className="selectedBlockPreview">
-
-{
-
-imageBlock.map((row,rowIndex)=>
-
-row.map((value,colIndex)=>(
-
-<div
-
-key={rowIndex+"-"+colIndex}
-
-className="blockPixel"
-
-style={{
-
-background:`rgb(${value},${value},${value})`
-
-}}
-
->
-
-</div>
-
-))
-)
-
-}
-
-</div>
-
-<p>
-
-Current Block :
-
-<b>
-
-B{selectedBlock}
-
-</b>
-
-</p>
 
 </div>
 
@@ -676,21 +580,71 @@ Current Transform Equation
 
 <h2>
 
+F(0,0)
+
+</h2>
+
+<div className="sigmaEquation">
+
+<div>
+
+F(u,v)
+
+=
+
+</div>
+
+<div className="sigma">
+
+Σ
+
+</div>
+
+<div className="sigma">
+
+Σ
+
+</div>
+
+<div>
+
 {
 
 transform==="DCT"
 
 ?
 
-"F = C × A × Cᵀ"
+"C(u,x)"
 
 :
 
-"F = S × A × Sᵀ"
+"S(u,x)"
 
 }
 
-</h2>
+×
+
+A(x,y)
+
+×
+
+{
+
+transform==="DCT"
+
+?
+
+"Cᵀ(y,v)"
+
+:
+
+"Sᵀ(y,v)"
+
+}
+
+</div>
+
+</div>
 
 <p>
 
@@ -717,56 +671,6 @@ transform==="DCT"
 F = Frequency Coefficient Matrix
 
 </p>
-
-</div>
-
-<div className="transformProgressCard">
-
-<h3>
-
-Transform Progress
-
-</h3>
-
-<div className="progressTrack">
-
-<div
-
-className="progressFill"
-
-style={{
-
-width:`${progress}%`
-
-}}
-
->
-
-{progress}%
-
-</div>
-
-</div>
-
-<p>
-
-{status}
-
-</p>
-
-<button
-
-className="transformButton"
-
-onClick={performTransform}
-
-disabled={progress>0 && progress<100}
-
->
-
-Perform Transform
-
-</button>
 
 </div>
 
@@ -836,29 +740,19 @@ F
 
 </div>
 
-<p>
+<button
 
-Current Stage :
+className="transformButton"
 
-<b>
+onClick={performTransform}
 
-{
+disabled={progress>0 && progress<100}
 
-step===0?"Waiting":
+>
 
-step===1?"Computing C × A":
+Perform Transform
 
-step===2?"Intermediate Matrix":
-
-step===3?"Multiplying with Transpose":
-
-"Frequency Matrix Generated"
-
-}
-
-</b>
-
-</p>
+</button>
 
 </div>
 
@@ -1108,57 +1002,6 @@ Compression occurs after quantization.
 
 </div>
 
-<div className="stepSummary">
-
-<h3>
-
-Step 5 Summary
-
-</h3>
-
-<div className="summaryFlow">
-
-<div>
-
-Image Block
-
-</div>
-
-↓
-
-<div>
-
-Basis Matrix
-
-</div>
-
-↓
-
-<div>
-
-Transform
-
-</div>
-
-↓
-
-<div>
-
-Frequency Matrix
-
-</div>
-
-↓
-
-<div>
-
-Ready for Frequency Visualization
-
-</div>
-
-</div>
-
-</div>
 
 
 
@@ -1421,77 +1264,6 @@ Interactive Mathematical Calculation
 
 </h3>
 
-<div className="formulaDisplay">
-
-<h2>
-
-F({u},{v})
-
-</h2>
-
-<div className="sigmaEquation">
-
-<div>
-
-F(u,v)
-
-=
-
-</div>
-
-<div className="sigma">
-
-Σ
-
-</div>
-
-<div className="sigma">
-
-Σ
-
-</div>
-
-<div>
-
-{
-
-transform==="DCT"
-
-?
-
-"C(u,x)"
-
-:
-
-"S(u,x)"
-
-}
-
-×
-
-A(x,y)
-
-×
-
-{
-
-transform==="DCT"
-
-?
-
-"Cᵀ(y,v)"
-
-:
-
-"Sᵀ(y,v)"
-
-}
-
-</div>
-
-</div>
-
-</div>
 
 <div className="calculationResult">
 

@@ -11,12 +11,16 @@ function ZigZagScan() {
   const { quantizedMatrix, zigzagArray, setZigzagArray, selectedBlock, transform } = useMatrix();
 
   const [cursor, setCursor] = useState(-1);
-  const [status, setStatus] = useState("Waiting");
+  const [status, setStatus] = useState(zigzagArray && zigzagArray.length===64 ? "Completed ✓" : "Waiting");
   const intervalRef = useRef(null);
+  const prevKey = useRef(JSON.stringify(quantizedMatrix)+selectedBlock+transform);
 
   const hasQuantized = quantizedMatrix.length === 8;
 
   useEffect(() => {
+    const key = JSON.stringify(quantizedMatrix)+selectedBlock+transform;
+    if (prevKey.current === key) return;
+    prevKey.current = key;
     setZigzagArray([]);
     setCursor(-1);
     setStatus("Waiting");
@@ -49,22 +53,19 @@ function ZigZagScan() {
     }, 45);
   };
 
-  const points = ORDER.map(([r, c]) => `${c * CELL + CELL / 2},${r * CELL + CELL / 2}`).join(" ");
+  const pointsArr = ORDER.map(([r, c]) => `${c * CELL + CELL / 2},${r * CELL + CELL / 2}`);
+  const drawUpTo = cursor >= 0 ? cursor + 1 : (zigzagArray.length === 64 ? 64 : 0);
+  const points = pointsArr.slice(0, drawUpTo).join(" ");
   const currentPoint = cursor >= 0 ? ORDER[cursor] : null;
   const scannedSoFar = cursor >= 0 ? cursor + 1 : zigzagArray.length;
 
   return (
     <div className="zzContainer">
       <div className="zzHeading">
-        <h2>Step 7 : Zig-Zag Scan</h2>
+        <h2>Zig-Zag Scan</h2>
         <p>
-          The 8×8 quantized coefficient matrix is inherently two-dimensional, but
-          entropy coders operate on 1-D sequences. The zig-zag scan reorders coefficients
-          by increasing spatial frequency, starting at the DC term (0,0) and sweeping
-          diagonally toward the highest-frequency term (7,7). Because quantization drives
-          most high-frequency terms to zero (Step 6), this reordering clusters the zero
-          coefficients together at the tail of the sequence — which is exactly what
-          run-length encoding (Step 8) needs to compress efficiently.
+          The quantized 8×8 matrix is reordered into a 1-D sequence by scanning
+          diagonally from the DC term, grouping trailing zeros for compression.
         </p>
       </div>
 
@@ -79,7 +80,7 @@ function ZigZagScan() {
           <h3>Quantized Matrix — Traversal Order</h3>
           <div className="zzGridWrap">
             <svg viewBox={`0 0 ${GRID} ${GRID}`} className="zzSvg">
-              <polyline points={points} fill="none" stroke="#93c5fd" strokeWidth="2" strokeDasharray="4 3" />
+              <polyline points={points} fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" />
               {currentPoint && (
                 <circle
                   cx={currentPoint[1] * CELL + CELL / 2}
@@ -113,27 +114,20 @@ function ZigZagScan() {
               )}
             </div>
           </div>
-          <button className="zzButton" onClick={runScan} disabled={!hasQuantized}>
-            {zigzagArray.length ? "Re-run Zig-Zag Scan" : "Start Zig-Zag Scan"}
+          <button className="zzButton" onClick={runScan} disabled={!hasQuantized || zigzagArray.length>0}>
+            {zigzagArray.length ? "Scan Completed ✓" : "Start Zig-Zag Scan"}
           </button>
-          <p className="zzStatus">{status}   ({scannedSoFar}/64 coefficients read)</p>
         </div>
 
         <div className="zz1dCard">
           <h3>Generated 1-D Output Array</h3>
-          <div className="zz1dTrack">
-            {Array.from({ length: 64 }).map((_, i) => (
-              <span
-                key={i}
-                className={
-                  "zzChip" +
-                  (i < zigzagArray.length ? (zigzagArray[i] === 0 ? " zzChipZero" : " zzChipFilled") : "") +
-                  (i === cursor ? " zzChipCurrent" : "")
-                }
-              >
-                {i < zigzagArray.length ? zigzagArray[i] : ""}
+          <div className="zz1dString">
+            [{zigzagArray.map((val, i) => (
+              <span key={i} className={val === 0 ? "zzTokZero" : "zzTok"}>
+                {val}{i < zigzagArray.length - 1 ? ", " : ""}
               </span>
             ))}
+            {zigzagArray.length < 64 && <span className="zzTokPending"> …</span>}]
           </div>
           <p className="zz1dCaption">
             Index 0 is the DC coefficient; trailing zeros form the run that Step 8 will compress.
@@ -166,17 +160,6 @@ function ZigZagScan() {
         </ul>
       </div>
 
-      <div className="pipelineCard">
-        <h2>Next Step Preview</h2>
-        <p>The 1-D sequence generated here is passed to the Run-Length Encoder, which compresses the zero-runs into compact (run, value) symbol pairs.</p>
-        <div className="pipelineFlow">
-          <div className="pipelineBox">Quantized Matrix</div>
-          <div className="pipelineOperator">→</div>
-          <div className="pipelineBox">Zig-Zag Scan</div>
-          <div className="pipelineOperator">→</div>
-          <div className="pipelineResult">Run-Length Encoding</div>
-        </div>
-      </div>
     </div>
   );
 }

@@ -12,13 +12,17 @@ function Encoding() {
   const { zigzagArray, encodedRuns, setEncodedRuns, selectedBlock, transform } = useMatrix();
 
   const [scanIndex, setScanIndex] = useState(-1);
-  const [status, setStatus] = useState("Waiting");
+  const [status, setStatus] = useState(encodedRuns?.pairs?.length ? "Completed \u2713" : "Waiting");
   const intervalRef = useRef(null);
+  const prevKey = useRef(JSON.stringify(zigzagArray)+selectedBlock+transform);
 
   const hasZigzag = zigzagArray.length === 64;
   const fullResult = hasZigzag ? runLengthEncode(zigzagArray) : { pairs: [], hasEOB: false, lastNonZero: -1 };
 
   useEffect(() => {
+    const key = JSON.stringify(zigzagArray)+selectedBlock+transform;
+    if (prevKey.current === key) return;
+    prevKey.current = key;
     setEncodedRuns(null);
     setScanIndex(-1);
     setStatus("Waiting");
@@ -64,21 +68,16 @@ function Encoding() {
   return (
     <div className="encContainer">
       <div className="encHeading">
-        <h2>Step 8 : Encoding (Run-Length Encoding)</h2>
+        <h2>Encoding (Run-Length Encoding)</h2>
         <p>
-          The zig-zag ordered sequence typically contains long runs of zero coefficients
-          following a handful of significant low-frequency values. Instead of storing
-          every zero individually, Run-Length Encoding (RLE) stores each non-zero value
-          together with a count of how many zeros preceded it: the pair (run, value).
-          Once only zeros remain, a single End-Of-Block (EOB) symbol replaces the entire
-          remaining tail — this is the core entropy-preparation idea used across
-          transform-coding systems, independent of any specific file format.
+          Long runs of zero coefficients in the zig-zag sequence are compressed into
+          compact (run, value) pairs, with a single EOB symbol replacing trailing zeros.
         </p>
       </div>
 
       {!hasZigzag && (
         <div className="encWarning">
-          Please complete Step 7 (Zig-Zag Scan) for this block first, then return here.
+          Please complete the Zig-Zag Scan for this block first, then return here.
         </div>
       )}
 
@@ -99,10 +98,9 @@ function Encoding() {
             </span>
           ))}
         </div>
-        <button className="encButton" onClick={runEncode} disabled={!hasZigzag}>
-          {pairs.length ? "Re-run Encoding" : "Start Run-Length Encoding"}
+        <button className="encButton" onClick={runEncode} disabled={!hasZigzag || pairs.length>0}>
+          {pairs.length ? "Encoding Completed \u2713" : "Start Run-Length Encoding"}
         </button>
-        <p className="encStatus">{status}</p>
       </div>
 
       <div className="encStreamCard">
@@ -161,17 +159,6 @@ function Encoding() {
         </ul>
       </div>
 
-      <div className="pipelineCard">
-        <h2>Next Step Preview</h2>
-        <p>To evaluate reconstruction quality, the encoded stream is conceptually reversed: dequantized and passed through the inverse transform to recover the spatial-domain block.</p>
-        <div className="pipelineFlow">
-          <div className="pipelineBox">Zig-Zag Output</div>
-          <div className="pipelineOperator">→</div>
-          <div className="pipelineBox">RLE Stream</div>
-          <div className="pipelineOperator">→</div>
-          <div className="pipelineResult">Inverse Transform</div>
-        </div>
-      </div>
     </div>
   );
 }

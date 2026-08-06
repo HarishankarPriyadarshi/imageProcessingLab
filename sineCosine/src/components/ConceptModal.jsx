@@ -8,13 +8,12 @@ import TransformComputation from "./steps/TransformComputation";
 import Quantization from "./steps/Quantization";
 import ZigZagScan from "./steps/ZigZagScan";
 import Encoding from "./steps/Encoding";
-import InverseTransform from "./steps/InverseTransform";
 import Comparison from "./steps/Comparison";
 
 function ConceptModal({ onClose }) {
 
 
-const { selectedMatrix, blockCreated, popupMessage, setPopupMessage } = useMatrix();
+const { selectedMatrix, blockCreated, setBlockCreated, selectedBlock, basisGenerated, frequencyMatrix, quantizedMatrix, zigzagArray, encodedRuns, popupMessage, setPopupMessage } = useMatrix();
 
 const nextStep = () => {
   if (!started) return;
@@ -24,8 +23,38 @@ const nextStep = () => {
     return;
   }
 
-  if (activeStep === 2 && !blockCreated) {
-    setPopupMessage("Please select a block (B1-B4) and click 'Create Processing Block' first.");
+  if (activeStep === 2) {
+    if (!selectedBlock) {
+      setPopupMessage("Please select a block (B1-B4) and click 'Create Processing Block' first.");
+      return;
+    }
+    if (!blockCreated) {
+      setBlockCreated(true);
+    }
+  }
+
+  if (activeStep === 3 && !basisGenerated) {
+    setPopupMessage("Please generate the Basis Matrix first before proceeding.");
+    return;
+  }
+
+  if (activeStep === 4 && (!frequencyMatrix || frequencyMatrix.length === 0)) {
+    setPopupMessage("Please click 'Perform Transform' first before proceeding.");
+    return;
+  }
+
+  if (activeStep === 5 && (!quantizedMatrix || quantizedMatrix.length === 0)) {
+    setPopupMessage("Please click 'Perform Quantization' first before proceeding.");
+    return;
+  }
+
+  if (activeStep === 6 && (!zigzagArray || zigzagArray.length === 0)) {
+    setPopupMessage("Please run the Zig-Zag Scan first before proceeding.");
+    return;
+  }
+
+  if (activeStep === 7 && (!encodedRuns || !encodedRuns.pairs || encodedRuns.pairs.length === 0)) {
+    setPopupMessage("Please run Run-Length Encoding first before proceeding.");
     return;
   }
 
@@ -117,9 +146,9 @@ const startSimulation = () => {
 
     <button
       onClick={nextStep}
-      disabled={!started}
+      disabled={!started || activeStep === steps.length}
     >
-      Next
+      {activeStep === steps.length ? "Finish" : "Next"}
     </button>
 
     <button
@@ -197,12 +226,6 @@ const startSimulation = () => {
 )
 
 : activeStep === 8 ? (
-
-<InverseTransform />
-
-)
-
-: activeStep === 9 ? (
 
 <Comparison />
 
