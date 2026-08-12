@@ -103,6 +103,42 @@ function Encoding() {
         </button>
       </div>
 
+      {hasZigzag && (
+        <div className="eobExplainCard">
+          <h3>What is EOB? (End Of Block)</h3>
+          {fullResult.hasEOB ? (
+            <>
+              <p>
+                After Quantization, most of the <b>high-frequency values at the end</b> of the
+                sequence become <b>0</b> (highlighted pink above). Once we cross the
+                <b> last non-zero value</b> (position {fullResult.lastNonZero}), everything after
+                it is guaranteed to be zero — all the way to position 63.
+              </p>
+              <p>
+                Instead of writing out all <b>{63 - fullResult.lastNonZero}</b> of those trailing
+                zeros one-by-one, we simply write <b>one symbol: EOB</b>. It means:
+                <i> "Stop here — every remaining coefficient in this block is zero."</i>
+              </p>
+              <div className="eobExample">
+                <span className="eobBefore">... , 1, -1&nbsp;</span>
+                <span className="eobArrow">→ instead of writing {63 - fullResult.lastNonZero} zeros →</span>
+                <span className="eobAfter">EOB</span>
+              </div>
+              <p className="eobNote">
+                This is the biggest source of compression in RLE: dozens of zero symbols
+                collapse into a single tag.
+              </p>
+            </>
+          ) : (
+            <p>
+              This particular block has a <b>non-zero value at the very last position (63)</b>,
+              so there are no trailing zeros left to compress — no EOB is needed here.
+              EOB only appears when the block ends with one or more zeros.
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="encStreamCard">
         <h3>Encoded Stream</h3>
         <div className="encStream">
