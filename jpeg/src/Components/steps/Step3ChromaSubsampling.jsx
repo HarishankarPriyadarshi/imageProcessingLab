@@ -383,22 +383,10 @@ function Step3ChromaSubsampling({
       <div className="step3ControlBar">
         <button
           type="button"
-          onClick={revealSelectedGroup}
-          disabled={isAutoSubsampling}
-        >
-          Downsample Selected 2×2 Group
-        </button>
-
-        <button
-          type="button"
           onClick={autoSubsampleFullMatrix}
           disabled={isAutoSubsampling}
         >
-          {isAutoSubsampling ? "Downsampling..." : "Auto Downsample Full Chroma"}
-        </button>
-
-        <button type="button" onClick={resetSubsampling}>
-          Reset
+          {isAutoSubsampling ? "Downsampling..." : "Run 2×2 Chroma Downsampling"}
         </button>
       </div>
 
@@ -514,7 +502,7 @@ function Step3ChromaSubsampling({
             </div>
           ) : (
             <div className="step3PendingBox">
-              Click Downsample Selected 2×2 Group to reveal the average.
+              Click Run 2×2 Chroma Downsampling to reveal the average.
             </div>
           )}
         </div>

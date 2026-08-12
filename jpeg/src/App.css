@@ -31,6 +31,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 }
 
 .headerBar {
@@ -9394,4 +9395,102 @@ button.chromaCell:hover {
   .step12RealImageBox img {
     max-width: 100%;
   }
+}
+
+.matrixRequiredOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+.matrixRequiredPopup {
+  background: #fff;
+  border-radius: 10px;
+  padding: 24px;
+  max-width: 340px;
+  text-align: center;
+}
+.matrixRequiredPopup h3 {
+  margin-top: 0;
+}
+.matrixRequiredPopup button {
+  margin-top: 12px;
+  padding: 8px 20px;
+}
+
+.step9SequenceString {
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  background: #0d2c72;
+  color: #e2e8f0;
+  padding: 14px;
+  border-radius: 8px;
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* Layout fix: input/output side-by-side on top, calculation panel(s) full-width below */
+.step3MainGrid,
+.step4MainGrid,
+.step5MainGrid,
+.step6MainGrid,
+.step8MainGrid,
+.step9MainGrid,
+.step10MainGrid {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 14px !important;
+}
+.step3MainGrid > *:nth-child(1),
+.step4MainGrid > *:nth-child(1),
+.step5MainGrid > *:nth-child(1),
+.step6MainGrid > *:nth-child(1),
+.step8MainGrid > *:nth-child(1),
+.step9MainGrid > *:nth-child(1),
+.step10MainGrid > *:nth-child(1) {
+  order: 1;
+  flex: 1 1 45%;
+  min-width: 340px;
+}
+.step3MainGrid > *:nth-child(3),
+.step4MainGrid > *:nth-child(3),
+.step5MainGrid > *:nth-child(3),
+.step6MainGrid > *:nth-child(3),
+.step8MainGrid > *:nth-child(3),
+.step9MainGrid > *:nth-child(3),
+.step10MainGrid > *:nth-child(3) {
+  order: 2;
+  flex: 1 1 45%;
+  min-width: 340px;
+}
+.step3MainGrid > *:nth-child(2),
+.step4MainGrid > *:nth-child(2),
+.step5MainGrid > *:nth-child(2),
+.step6MainGrid > *:nth-child(2),
+.step8MainGrid > *:nth-child(2),
+.step9MainGrid > *:nth-child(2),
+.step10MainGrid > *:nth-child(2) {
+  order: 3;
+  flex: 1 1 100%;
+  min-width: 100%;
+}
+
+.step7MainGrid {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 14px !important;
+}
+.step7MainGrid > *:nth-child(1) { order: 1; flex: 1 1 45%; min-width: 340px; }
+.step7MainGrid > *:nth-child(4) { order: 2; flex: 1 1 45%; min-width: 340px; }
+.step7MainGrid > *:nth-child(2),
+.step7MainGrid > *:nth-child(3) { order: 3; flex: 1 1 47%; min-width: 320px; }
+
+/* Ensure grid cells don't get clipped/cut off - allow horizontal scroll where needed instead of hiding overflow */
+.step3MainGrid *, .step4MainGrid *, .step5MainGrid *, .step6MainGrid *,
+.step7MainGrid *, .step8MainGrid *, .step9MainGrid *, .step10MainGrid * {
+  overflow-wrap: break-word;
 }

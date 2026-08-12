@@ -110,9 +110,9 @@ function Step12FinalOutput({
   dcCodingData,
   quantizationData,
   originalBlockData,
+  isGenerated,
+  setIsGenerated,
 }) {
-  const [isGenerated, setIsGenerated] = useState(false);
-  const [selectedQuality, setSelectedQuality] = useState("q50");
 
   const componentName =
     huffmanData?.component ||
@@ -167,9 +167,8 @@ function Step12FinalOutput({
     return (total / 64).toFixed(2);
   }, [originalYBlock, reconstructedYBlock]);
 
-  const selectedSample = REAL_COMPRESSION_SAMPLES[selectedQuality];
-  const realRatio = (RAW_BITMAP_BYTES / selectedSample.bytes).toFixed(1);
-  const pngRatio = (RAW_BITMAP_BYTES / REAL_COMPRESSION_SAMPLES.original.bytes).toFixed(1);
+  const selectedSample = REAL_COMPRESSION_SAMPLES.q50;
+  void selectedSample;
 
   useEffect(() => {
     setIsGenerated(false);
@@ -182,12 +181,13 @@ function Step12FinalOutput({
   function resetOutput() {
     setIsGenerated(false);
   }
+  void resetOutput;
 
   return (
     <div className="step12SimplePage">
       <div className="step12ConceptBox">
         <div>
-          <strong>Step 12 Concept:</strong> The final compressed JPEG output
+          <strong>Step 11 Concept:</strong> The final compressed JPEG output
           combines the entropy encoded bitstream from Step 11 into the
           educational compressed scan data for the selected block.
         </div>
@@ -227,7 +227,7 @@ function Step12FinalOutput({
         <div>
           <span>Input</span>
           <strong>Huffman Bitstream</strong>
-          <small>From Step 11</small>
+          <small>From Step 10</small>
         </div>
 
         <div>
@@ -240,10 +240,6 @@ function Step12FinalOutput({
       <div className="step12ControlBar">
         <button type="button" onClick={generateFinalOutput}>
           Generate Final Output
-        </button>
-
-        <button type="button" onClick={resetOutput}>
-          Reset
         </button>
       </div>
 
@@ -318,74 +314,8 @@ function Step12FinalOutput({
         </div>
       </div>
 
-      <div className="step12RealImageCard">
-        <h3>Real Photo Compression (Actual Files, Not Estimated)</h3>
-
-        <p className="step12SmallNote">
-          These are genuine files generated with Python/Pillow from the same
-          real photo used in Step 1&apos;s &quot;Real Photo Patch&quot;. Sizes
-          below are the actual bytes measured on disk.
-        </p>
-
-        <div className="step12QualityPicker">
-          {Object.entries(REAL_COMPRESSION_SAMPLES)
-            .filter(([key]) => key !== "original")
-            .map(([key, sample]) => (
-              <button
-                key={key}
-                type="button"
-                className={`step12QualityBtn ${
-                  selectedQuality === key ? "step12QualityBtnActive" : ""
-                }`}
-                onClick={() => setSelectedQuality(key)}
-              >
-                {sample.label}
-              </button>
-            ))}
-        </div>
-
-        <div className="step12RealImageRow">
-          <div className="step12RealImageBox">
-            <img
-              src={REAL_COMPRESSION_SAMPLES.original.url}
-              alt="Original uncompressed reference"
-            />
-            <span>Original (raw bitmap ≈ {(RAW_BITMAP_BYTES / 1024).toFixed(0)} KB)</span>
-          </div>
-
-          <div className="step12RealImageBox">
-            <img src={selectedSample.url} alt={selectedSample.label} />
-            <span>
-              {selectedSample.label} ({(selectedSample.bytes / 1024).toFixed(1)} KB)
-            </span>
-          </div>
-        </div>
-
-        <div className="step12RealStatsRow">
-          <div>
-            <span>Raw Bitmap Size</span>
-            <strong>{(RAW_BITMAP_BYTES / 1024).toFixed(0)} KB</strong>
-          </div>
-
-          <div>
-            <span>Lossless PNG</span>
-            <strong>
-              {(REAL_COMPRESSION_SAMPLES.original.bytes / 1024).toFixed(0)} KB
-              ({pngRatio}:1)
-            </strong>
-          </div>
-
-          <div className="step12RatioHighlight">
-            <span>{selectedSample.label}</span>
-            <strong>
-              {(selectedSample.bytes / 1024).toFixed(1)} KB ({realRatio}:1)
-            </strong>
-          </div>
-        </div>
-      </div>
-
       <div className="rgbInfoBox">
-        Step 12 Output = Final educational compressed bitstream for the
+        Step 11 Output = Final educational compressed bitstream for the
         selected 8×8 block, completing the baseline JPEG encoding simulation.
       </div>
     </div>

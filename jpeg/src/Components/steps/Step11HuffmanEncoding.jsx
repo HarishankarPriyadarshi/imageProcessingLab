@@ -55,12 +55,19 @@ function normalizeRleSymbols(rleSymbols) {
   return rleSymbols;
 }
 
-function Step11HuffmanEncoding({ dcCodingData, rleData, onHuffmanChange }) {
+function Step11HuffmanEncoding({
+  dcCodingData,
+  rleData,
+  onHuffmanChange,
+  isDcEncoded,
+  setIsDcEncoded,
+  acEncodedUpTo,
+  setAcEncodedUpTo,
+  isAutoEncoding,
+  setIsAutoEncoding,
+  setComplete,
+}) {
   const runRef = useRef(0);
-
-  const [isDcEncoded, setIsDcEncoded] = useState(false);
-  const [acEncodedUpTo, setAcEncodedUpTo] = useState(-1);
-  const [isAutoEncoding, setIsAutoEncoding] = useState(false);
 
   const rleSymbols = useMemo(
     () => normalizeRleSymbols(rleData?.rleSymbols),
@@ -131,13 +138,6 @@ function Step11HuffmanEncoding({ dcCodingData, rleData, onHuffmanChange }) {
   }
 
   useEffect(() => {
-    runRef.current += 1;
-    setIsDcEncoded(false);
-    setAcEncodedUpTo(-1);
-    setIsAutoEncoding(false);
-  }, [dcCodingData, rleData]);
-
-  useEffect(() => {
     emitHuffmanData(finalBitstream);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finalBitstream]);
@@ -155,6 +155,8 @@ function Step11HuffmanEncoding({ dcCodingData, rleData, onHuffmanChange }) {
       setAcEncodedUpTo(nextIndex);
     }
   }
+  void encodeDcStep;
+  void encodeAcStep;
 
   async function autoHuffmanEncode() {
     if (isAutoEncoding) return;
@@ -177,6 +179,7 @@ function Step11HuffmanEncoding({ dcCodingData, rleData, onHuffmanChange }) {
     }
 
     setIsAutoEncoding(false);
+    if (typeof setComplete === "function") setComplete(true);
   }
 
   function resetHuffman() {
@@ -185,12 +188,13 @@ function Step11HuffmanEncoding({ dcCodingData, rleData, onHuffmanChange }) {
     setAcEncodedUpTo(-1);
     setIsAutoEncoding(false);
   }
+  void resetHuffman;
 
   return (
     <div className="step11SimplePage">
       <div className="step11ConceptBox">
         <div>
-          <strong>Step 11 Concept:</strong> Huffman encoding assigns shorter
+          <strong>Step 10 Concept:</strong> Huffman encoding assigns shorter
           binary codes to frequently occurring symbols and longer codes to
           rare symbols, turning the DC difference and AC run-length symbols
           into a compact bitstream.
@@ -214,7 +218,7 @@ function Step11HuffmanEncoding({ dcCodingData, rleData, onHuffmanChange }) {
           <strong>
             {componentName} Block B{blockNumber}
           </strong>
-          <small>DC difference (Step 8) + RLE symbols (Step 10)</small>
+          <small>DC difference (automatic) + RLE symbols (Step 9)</small>
         </div>
 
         <div>
@@ -224,35 +228,19 @@ function Step11HuffmanEncoding({ dcCodingData, rleData, onHuffmanChange }) {
         </div>
 
         <div>
-          <span>Output To Step 12</span>
+          <span>Output To Step 11</span>
           <strong>Entropy Bitstream</strong>
           <small>Final compressed scan data</small>
         </div>
       </div>
 
       <div className="step11ControlBar">
-        <button type="button" onClick={encodeDcStep} disabled={isAutoEncoding}>
-          Encode DC
-        </button>
-
-        <button
-          type="button"
-          onClick={encodeAcStep}
-          disabled={isAutoEncoding || !isDcEncoded}
-        >
-          Encode AC
-        </button>
-
         <button
           type="button"
           onClick={autoHuffmanEncode}
           disabled={isAutoEncoding}
         >
-          {isAutoEncoding ? "Encoding..." : "Auto Huffman Encode"}
-        </button>
-
-        <button type="button" onClick={resetHuffman}>
-          Reset
+          {isAutoEncoding ? "Encoding..." : "Run Huffman Encoding"}
         </button>
       </div>
 
@@ -282,7 +270,7 @@ function Step11HuffmanEncoding({ dcCodingData, rleData, onHuffmanChange }) {
                 <b>{dcFullCode}</b>
               </>
             ) : (
-              "Click Encode DC to reveal the DC Huffman code"
+              "Run Huffman Encoding to reveal the DC Huffman code"
             )}
           </div>
         </div>
@@ -337,8 +325,8 @@ function Step11HuffmanEncoding({ dcCodingData, rleData, onHuffmanChange }) {
       </div>
 
       <div className="rgbInfoBox">
-        Step 11 Output = Entropy encoded bitstream (simplified educational
-        Huffman codes). This moves to the Final Compressed Output in Step 12.
+        Step 10 Output = Entropy encoded bitstream (simplified educational
+        Huffman codes). This moves to the Final Compressed Output in Step 11.
       </div>
     </div>
   );

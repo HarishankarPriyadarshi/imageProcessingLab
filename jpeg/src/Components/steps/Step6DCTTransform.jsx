@@ -122,12 +122,18 @@ function DctOutputGrid({
   );
 }
 
-function Step6DCTTransform({ selectedBlockData, levelShiftData, onDctChange }) {
+function Step6DCTTransform({
+  selectedBlockData,
+  levelShiftData,
+  onDctChange,
+  selectedCoefficientIndex,
+  setSelectedCoefficientIndex,
+  revealedIndexes,
+  setRevealedIndexes,
+  isAutoApplying,
+  setIsAutoApplying,
+}) {
   const runRef = useRef(0);
-
-  const [selectedCoefficientIndex, setSelectedCoefficientIndex] = useState(0);
-  const [revealedIndexes, setRevealedIndexes] = useState([]);
-  const [isAutoApplying, setIsAutoApplying] = useState(false);
   const [showCalculation, setShowCalculation] = useState(false);
 
   const inputBlock = useMemo(() => {
@@ -179,12 +185,6 @@ function Step6DCTTransform({ selectedBlockData, levelShiftData, onDctChange }) {
   const progressPercent = Math.round((revealedCount / 64) * 100);
 
   useEffect(() => {
-    runRef.current += 1;
-    setSelectedCoefficientIndex(0);
-    setRevealedIndexes([]);
-    setIsAutoApplying(false);
-    setShowCalculation(false);
-
     if (typeof onDctChange === "function") {
       onDctChange({
         component: componentName,
@@ -247,6 +247,8 @@ function Step6DCTTransform({ selectedBlockData, levelShiftData, onDctChange }) {
     setIsAutoApplying(false);
     setShowCalculation(false);
   }
+  void resetDct;
+  void calculateSelectedCoefficient;
 
   return (
     <div className="step6SimplePage">
@@ -308,22 +310,10 @@ function Step6DCTTransform({ selectedBlockData, levelShiftData, onDctChange }) {
       <div className="step6ControlBar">
         <button
           type="button"
-          onClick={calculateSelectedCoefficient}
-          disabled={isAutoApplying}
-        >
-          Calculate Selected Coefficient
-        </button>
-
-        <button
-          type="button"
           onClick={autoApplyFullDct}
           disabled={isAutoApplying}
         >
-          {isAutoApplying ? "Applying DCT..." : "Auto Apply Full 2D DCT"}
-        </button>
-
-        <button type="button" onClick={resetDct}>
-          Reset
+          {isAutoApplying ? "Applying DCT..." : "Run 2D DCT Transform"}
         </button>
       </div>
 
@@ -407,8 +397,8 @@ function Step6DCTTransform({ selectedBlockData, levelShiftData, onDctChange }) {
             </div>
           ) : (
             <div className="step6PendingBox">
-              Select a coefficient in the output grid and click Calculate
-              Selected Coefficient.
+              Select a coefficient and run the 2D DCT transform to reveal
+              its value.
             </div>
           )}
         </div>
@@ -422,13 +412,13 @@ function Step6DCTTransform({ selectedBlockData, levelShiftData, onDctChange }) {
             revealedIndexes={revealedIndexes}
             onCoefficientSelect={(index) => {
               setSelectedCoefficientIndex(index);
-              setShowCalculation(false);
+              setShowCalculation(revealedIndexes.includes(index));
             }}
           />
 
           <p className="step6SmallNote">
-            Click any output cell to inspect its DCT coefficient. Values appear
-            after calculation.
+            Click any output cell (after running DCT) to inspect its
+            coefficient.
           </p>
         </div>
       </div>

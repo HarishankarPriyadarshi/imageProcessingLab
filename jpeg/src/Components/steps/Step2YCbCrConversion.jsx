@@ -143,9 +143,7 @@ function Step2YCbCrConversion({
   convertedPixelIndexes,
   isAutoConverting,
   showSelectedCalculation,
-  convertSelectedPixelOnly,
   autoConvertFullMatrix,
-  resetStep2Conversion,
 }) {
   const [activeComponent, setActiveComponent] = useState("Y");
 
@@ -222,22 +220,10 @@ function Step2YCbCrConversion({
       <div className="step2ControlBar">
         <button
           type="button"
-          onClick={convertSelectedPixelOnly}
-          disabled={isAutoConverting}
-        >
-          Convert Selected Pixel
-        </button>
-
-        <button
-          type="button"
           onClick={autoConvertFullMatrix}
           disabled={isAutoConverting}
         >
-          {isAutoConverting ? "Converting..." : "Auto Convert Full Matrix"}
-        </button>
-
-        <button type="button" onClick={resetStep2Conversion}>
-          Reset
+          {isAutoConverting ? "Converting..." : "Run RGB → YCbCr Color Transform"}
         </button>
       </div>
 
@@ -272,8 +258,8 @@ function Step2YCbCrConversion({
           />
 
           <p className="step2SmallNote">
-            Click any pixel, then press Convert Selected Pixel to see the
-            formula applied on that pixel.
+            Click any pixel to inspect it, then press Run RGB → YCbCr Color
+            Transform to see the formula applied.
           </p>
         </div>
 
@@ -335,8 +321,8 @@ function Step2YCbCrConversion({
             </>
           ) : (
             <div className="step2PendingBox">
-              Conversion output is hidden. Click Convert Selected Pixel or Auto
-              Convert Full Matrix.
+              Conversion output is hidden. Click Run RGB → YCbCr Color
+              Transform.
             </div>
           )}
         </div>

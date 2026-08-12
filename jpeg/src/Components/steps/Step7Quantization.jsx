@@ -113,14 +113,20 @@ function MatrixGrid({
   );
 }
 
-function Step7Quantization({ dctData, onQuantizationChange }) {
+function Step7Quantization({
+  dctData,
+  onQuantizationChange,
+  selectedIndex,
+  setSelectedIndex,
+  revealedIndexes,
+  setRevealedIndexes,
+  isAutoQuantizing,
+  setIsAutoQuantizing,
+  quality,
+  setQuality,
+}) {
   const runRef = useRef(0);
-
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [revealedIndexes, setRevealedIndexes] = useState([]);
-  const [isAutoQuantizing, setIsAutoQuantizing] = useState(false);
   const [showCalculation, setShowCalculation] = useState(false);
-  const [quality, setQuality] = useState(50);
 
   const dctMatrix = useMemo(
     () => normalize8x8Block(dctData?.values),
@@ -157,31 +163,6 @@ function Step7Quantization({ dctData, onQuantizationChange }) {
   const progressPercent = Math.round((revealedCount / 64) * 100);
 
   useEffect(() => {
-    runRef.current += 1;
-    setSelectedIndex(0);
-    setRevealedIndexes([]);
-    setIsAutoQuantizing(false);
-    setShowCalculation(false);
-
-    if (typeof onQuantizationChange === "function") {
-      onQuantizationChange({
-        component: componentName,
-        blockIndex,
-        values: quantizedMatrix,
-        dctValues: dctMatrix,
-        quantizationTable: activeQuantizationTable,
-        startRow,
-        startCol,
-      });
-    }
-  }, [dctData]);
-
-  useEffect(() => {
-    runRef.current += 1;
-    setRevealedIndexes([]);
-    setIsAutoQuantizing(false);
-    setShowCalculation(false);
-
     if (typeof onQuantizationChange === "function") {
       onQuantizationChange({
         component: componentName,
@@ -194,7 +175,29 @@ function Step7Quantization({ dctData, onQuantizationChange }) {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quality]);
+  }, [dctData]);
+
+  function handleQualityChange(newQuality) {
+    setQuality(newQuality);
+    setRevealedIndexes([]);
+    setIsAutoQuantizing(false);
+    setShowCalculation(false);
+
+    if (typeof onQuantizationChange === "function") {
+      const table = scaleQuantizationTable(luminanceQuantizationTable, newQuality);
+      const newQuantizedMatrix = quantizeDctMatrix(dctMatrix, table);
+
+      onQuantizationChange({
+        component: componentName,
+        blockIndex,
+        values: newQuantizedMatrix,
+        dctValues: dctMatrix,
+        quantizationTable: table,
+        startRow,
+        startCol,
+      });
+    }
+  }
 
   function quantizeSelectedCoefficient() {
     runRef.current += 1;
@@ -246,6 +249,8 @@ function Step7Quantization({ dctData, onQuantizationChange }) {
     setIsAutoQuantizing(false);
     setShowCalculation(false);
   }
+  void resetQuantization;
+  void quantizeSelectedCoefficient;
 
   return (
     <div className="step7SimplePage">
@@ -321,7 +326,7 @@ function Step7Quantization({ dctData, onQuantizationChange }) {
           min="1"
           max="100"
           value={quality}
-          onChange={(event) => setQuality(Number(event.target.value))}
+          onChange={(event) => handleQualityChange(Number(event.target.value))}
         />
 
         <p className="step7QualityNote">
@@ -335,22 +340,10 @@ function Step7Quantization({ dctData, onQuantizationChange }) {
       <div className="step7ControlBar">
         <button
           type="button"
-          onClick={quantizeSelectedCoefficient}
-          disabled={isAutoQuantizing}
-        >
-          Quantize Selected Coefficient
-        </button>
-
-        <button
-          type="button"
           onClick={autoQuantizeFullMatrix}
           disabled={isAutoQuantizing}
         >
-          {isAutoQuantizing ? "Quantizing..." : "Auto Quantize Full Matrix"}
-        </button>
-
-        <button type="button" onClick={resetQuantization}>
-          Reset
+          {isAutoQuantizing ? "Quantizing..." : "Run Quantization (DCT ÷ Table)"}
         </button>
       </div>
 
@@ -390,7 +383,7 @@ function Step7Quantization({ dctData, onQuantizationChange }) {
             revealedIndexes={revealedIndexes}
             onCellSelect={(index) => {
               setSelectedIndex(index);
-              setShowCalculation(false);
+              setShowCalculation(revealedIndexes.includes(index));
             }}
             type="input"
           />
@@ -409,7 +402,7 @@ function Step7Quantization({ dctData, onQuantizationChange }) {
             revealedIndexes={revealedIndexes}
             onCellSelect={(index) => {
               setSelectedIndex(index);
-              setShowCalculation(false);
+              setShowCalculation(revealedIndexes.includes(index));
             }}
             type="table"
           />
@@ -457,7 +450,8 @@ function Step7Quantization({ dctData, onQuantizationChange }) {
             </div>
           ) : (
             <div className="step7PendingBox">
-              Select a coefficient and click Quantize Selected Coefficient.
+              Select a coefficient (after running quantization) to see the
+              calculation.
             </div>
           )}
         </div>
@@ -471,7 +465,7 @@ function Step7Quantization({ dctData, onQuantizationChange }) {
             revealedIndexes={revealedIndexes}
             onCellSelect={(index) => {
               setSelectedIndex(index);
-              setShowCalculation(false);
+              setShowCalculation(revealedIndexes.includes(index));
             }}
             type="output"
           />
