@@ -25,12 +25,14 @@ function Quantization() {
     setQuantizedMatrix,
   } = useMatrix();
 
-  const [status, setStatus] = useState("Waiting");
-  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState(quantizedMatrix && quantizedMatrix.length ? "Completed ✓" : "Waiting");
+  const [progress, setProgress] = useState(quantizedMatrix && quantizedMatrix.length ? 100 : 0);
   const [currentRow, setCurrentRow] = useState(-1);
   const [currentCol, setCurrentCol] = useState(-1);
   const [selectedCell, setSelectedCell] = useState({ row: 0, col: 0 });
   const intervalRef = useRef(null);
+  const prevKey = useRef(selectedBlock + "_" + transform);
+  const prevQF = useRef(qualityFactor);
 
   useEffect(() => {
     if (!selectedMatrix) return;
@@ -38,6 +40,9 @@ function Quantization() {
     const block = extractBlock(selectedMatrix.data, selectedBlock);
     const F = forwardTransform(block, T).map((row) => row.map((v) => Number(v.toFixed(2))));
     setFrequencyMatrix(F);
+    const key = selectedBlock + "_" + transform;
+    if (prevKey.current === key) return;
+    prevKey.current = key;
     setQuantizedMatrix([]);
     setStatus("Waiting");
     setProgress(0);
@@ -55,6 +60,8 @@ function Quantization() {
 
   useEffect(() => {
     setQuantTable(scaledQuantMatrix);
+    if (prevQF.current === qualityFactor) return;
+    prevQF.current = qualityFactor;
     setQuantizedMatrix([]);
     setStatus("Waiting");
     setProgress(0);
@@ -121,42 +128,13 @@ function Quantization() {
   return (
     <div className="quantContainer">
       <div className="quantHeading">
-        <h2>Step 6 : Quantization</h2>
+        <h2>Quantization</h2>
         <p>
-          Quantization is the lossy stage of transform coding. Every frequency-domain
-          coefficient F(u,v) produced in Step 5 is divided by a corresponding weight
-          T(u,v) from a quantization table and rounded to the nearest integer. Because
-          human perception is far less sensitive to high-frequency detail than to
-          low-frequency structure, T(u,v) is designed to weight high frequencies far
-          more heavily, driving many of them to zero and enabling data compression
-          with minimal perceptual loss.
+          Each frequency coefficient F(u,v) is divided by a quality-scaled
+          quantization step T(u,v) and rounded, removing perceptually minor detail.
         </p>
       </div>
 
-      <div className="topControls">
-        <div className="controlCard">
-          <h3>Transform</h3>
-          <div className="toggleButtons">
-            <button className={transform === "DCT" ? "activeBtn" : ""} onClick={() => setTransform("DCT")}>DCT</button>
-            <button className={transform === "DST" ? "activeBtn" : ""} onClick={() => setTransform("DST")}>DST</button>
-          </div>
-        </div>
-
-        <div className="controlCard">
-          <h3>Processing Block</h3>
-          <div className="blockButtons">
-            {[1, 2, 3, 4].map((block) => (
-              <button
-                key={block}
-                className={selectedBlock === block ? "activeBtn" : ""}
-                onClick={() => setSelectedBlock(block)}
-              >
-                B{block}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
 
       <div className="qualityCard">
         <h3>Quality Factor</h3>
@@ -250,15 +228,6 @@ function Quantization() {
       </div>
 
       <div className="progressCard">
-        <h3>Quantization Status</h3>
-        <p>
-          {status}
-          <br />
-          <small>{currentRow === -1 ? "Waiting" : `Processing Cell : (${currentRow},${currentCol})`}</small>
-        </p>
-        <div className="progressTrack">
-          <div className="progressFill" style={{ width: `${progress}%` }}>{progress}%</div>
-        </div>
         <button className="quantButton" onClick={performQuantization}>
           {quantizedMatrix.length ? "Re-run Quantization" : "Perform Quantization"}
         </button>
@@ -361,17 +330,6 @@ function Quantization() {
         </ul>
       </div>
 
-      <div className="pipelineCard">
-        <h2>Next Step Preview</h2>
-        <p>After quantization, the coefficient matrix is rearranged into a 1-D sequence using the Zig-Zag scanning process, grouping the zero coefficients together for efficient encoding.</p>
-        <div className="pipelineFlow">
-          <div className="pipelineBox">Frequency Matrix</div>
-          <div className="pipelineOperator">→</div>
-          <div className="pipelineBox">Quantization</div>
-          <div className="pipelineOperator">→</div>
-          <div className="pipelineResult">Zig-Zag Scan</div>
-        </div>
-      </div>
     </div>
   );
 }

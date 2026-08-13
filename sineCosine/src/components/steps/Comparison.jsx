@@ -94,13 +94,10 @@ function Comparison() {
   return (
     <div className="cmpContainer">
       <div className="cmpHeading">
-        <h2>Step 10 : Final Comparison Dashboard</h2>
+        <h2>Final Comparison Dashboard</h2>
         <p>
-          The complete 16×16 image is reassembled from all four independently
-          transformed, quantized, and reconstructed 8×8 blocks. This dashboard
-          quantifies the fidelity of the reconstruction against the original image using
-          standard image-quality metrics, and visualizes exactly where information was
-          lost during compression.
+          The reconstructed 16×16 image is compared against the original using
+          standard image-quality metrics, showing where information was lost.
         </p>
       </div>
 

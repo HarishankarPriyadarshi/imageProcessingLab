@@ -38,7 +38,9 @@ margin-bottom:10px;
 
 color:#666;
 
-max-width:720px;
+max-width:none;
+
+white-space:nowrap;
 
 margin:auto;
 
@@ -126,7 +128,7 @@ color:white;
 
 display:grid;
 
-grid-template-columns:420px 60px auto;
+grid-template-columns:1fr 70px 1fr;
 
 align-items:center;
 
@@ -135,6 +137,12 @@ justify-content:center;
 column-gap:25px;
 
 margin-top:30px;
+
+max-width:1400px;
+
+margin-left:auto;
+
+margin-right:auto;
 
 }
 
@@ -156,7 +164,7 @@ overflow:visible;
 
 .blockCard{
 
-width:390px;
+width:100%;
 
 }
 
@@ -260,19 +268,19 @@ transform:translateY(-2px);
 
 display:grid;
 
-grid-template-columns:38px repeat(8,44px);
+grid-template-columns:44px repeat(8,54px);
 
 justify-content:center;
 
 align-items:center;
 
-gap:5px;
+gap:6px;
 
 }
 
 .basisGrid span{
 
-height:34px;
+height:44px;
 
 display:flex;
 
@@ -280,7 +288,7 @@ justify-content:center;
 
 align-items:center;
 
-font-size:10px;
+font-size:12px;
 font-family:Consolas,monospace;
 font-weight:600;
 
@@ -291,6 +299,8 @@ border:1px solid #bfd4ff;
 border-radius:8px;
 
 animation:pop .25s;
+
+cursor:pointer;
 
 }
 
@@ -996,19 +1006,23 @@ box-shadow:0 0 0px rgba(37,99,235,.4);
 
 display:grid;
 
-grid-template-columns:repeat(8,28px);
+grid-template-columns:repeat(8,1fr);
 
 gap:4px;
 
-justify-content:center;
+width:100%;
+
+max-width:520px;
+
+margin:0 auto;
 
 }
 
 .blockPixel{
 
-width:28px;
+width:100%;
 
-height:28px;
+aspect-ratio:1;
 
 border-radius:4px;
 
@@ -1020,11 +1034,15 @@ border:1px solid #d1d5db;
 
 display:grid;
 
-grid-template-columns:repeat(8,30px);
+grid-template-columns:repeat(8,1fr);
 
 gap:4px;
 
-justify-content:center;
+width:100%;
+
+max-width:520px;
+
+margin:0 auto;
 
 padding:20px;
 
@@ -1032,9 +1050,9 @@ padding:20px;
 
 .blockPixel{
 
-width:30px;
+width:100%;
 
-height:30px;
+aspect-ratio:1;
 
 border-radius:4px;
 
@@ -1422,4 +1440,49 @@ color:#123b8d;
     width:22px !important;
     height:22px !important;
   }
+}
+
+.miniFormulaText{
+margin-top:10px;
+font-size:15px;
+color:#123b8d;
+font-family:Consolas,monospace;
+font-weight:600;
+line-height:1.6;
+white-space:normal;
+}
+
+.playControls{
+display:flex;
+gap:14px;
+justify-content:center;
+}
+
+.fastForward{
+background:#0ea5e9;
+}
+
+.generateButton:disabled,
+.toggleButtons button:disabled{
+opacity:.5;
+cursor:not-allowed;
+}
+
+.calcSteps{
+margin-top:14px;
+text-align:left;
+}
+
+.calcStepLine{
+background:#f1f5f9;
+padding:8px 12px;
+border-radius:8px;
+margin-bottom:6px;
+font-family:Consolas,monospace;
+font-size:13px;
+color:#1e293b;
+}
+
+.miniFormulaText{
+font-size:16px;
 }

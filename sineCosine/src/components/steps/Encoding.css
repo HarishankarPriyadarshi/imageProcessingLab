@@ -20,9 +20,9 @@
 }
 
 .encHeading p{
-  max-width:800px;
+  max-width:950px;
   margin:auto;
-  line-height:1.8;
+  line-height:1.6;
   color:#666;
 }
 
@@ -185,3 +185,21 @@
   .encHeading h2{ font-size:22px; }
   .encBinaryChip{ font-size:10px; }
 }
+
+.eobExplainCard{
+  background:#fffaf0;
+  border:2px solid #fbbf24;
+  border-radius:14px;
+  padding:22px;
+  margin-top:20px;
+  line-height:1.8;
+}
+.eobExplainCard h3{ color:#92400e; margin-bottom:10px; }
+.eobExample{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  font-family:Consolas,monospace; font-weight:700;
+  background:#fff; padding:12px 16px; border-radius:10px; margin:12px 0;
+}
+.eobArrow{ color:#b45309; font-size:13px; }
+.eobAfter{ background:#dc2626; color:#fff; padding:4px 10px; border-radius:6px; }
+.eobNote{ font-size:13px; color:#92400e; }
