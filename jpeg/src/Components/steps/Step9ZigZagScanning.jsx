@@ -43,12 +43,18 @@ function buildFullSequence(matrix) {
   return ZIG_ZAG_ORDER.map(([row, col]) => matrix[row][col]);
 }
 
-function Step9ZigZagScanning({ quantizationData, dcCodingData, onZigZagChange }) {
+function Step9ZigZagScanning({
+  quantizationData,
+  dcCodingData,
+  onZigZagChange,
+  scanIndex,
+  setScanIndex,
+  scannedIndexes,
+  setScannedIndexes,
+  isAutoScanning,
+  setIsAutoScanning,
+}) {
   const runRef = useRef(0);
-
-  const [scanIndex, setScanIndex] = useState(0);
-  const [scannedIndexes, setScannedIndexes] = useState([]);
-  const [isAutoScanning, setIsAutoScanning] = useState(false);
 
   const quantizedMatrix = useMemo(
     () => normalize8x8Block(quantizationData?.values),
@@ -92,11 +98,6 @@ function Step9ZigZagScanning({ quantizationData, dcCodingData, onZigZagChange })
   }
 
   useEffect(() => {
-    runRef.current += 1;
-    setScanIndex(0);
-    setScannedIndexes([]);
-    setIsAutoScanning(false);
-
     emitZigZagData(fullSequence);
   }, [quantizationData]);
 
@@ -147,12 +148,14 @@ function Step9ZigZagScanning({ quantizationData, dcCodingData, onZigZagChange })
     setScannedIndexes([]);
     setIsAutoScanning(false);
   }
+  void resetScan;
+  void scanSelectedPosition;
 
   return (
     <div className="step9SimplePage">
       <div className="step9ConceptBox">
         <div>
-          <strong>Step 9 Concept:</strong> Zig-zag scanning converts the 8×8
+          <strong>Step 8 Concept:</strong> Zig-zag scanning converts the 8×8
           quantized coefficient matrix into a single 1D sequence of 64 values.
         </div>
 
@@ -165,8 +168,8 @@ function Step9ZigZagScanning({ quantizationData, dcCodingData, onZigZagChange })
 
         <div>
           <strong>Note:</strong> The first value of the sequence is the DC
-          coefficient, already processed in Step 8. The remaining 63 values are
-          AC coefficients and move on to Step 10.
+          coefficient, already computed automatically in the background. The
+          remaining 63 values are AC coefficients and move on to Step 9.
         </div>
       </div>
 
@@ -186,31 +189,19 @@ function Step9ZigZagScanning({ quantizationData, dcCodingData, onZigZagChange })
         </div>
 
         <div>
-          <span>Output To Step 10</span>
+          <span>Output To Step 9</span>
           <strong>63 AC Values</strong>
-          <small>DC value already handled in Step 8</small>
+          <small>DC value already handled automatically</small>
         </div>
       </div>
 
       <div className="step9ControlBar">
         <button
           type="button"
-          onClick={scanSelectedPosition}
-          disabled={isAutoScanning}
-        >
-          Scan Selected Position
-        </button>
-
-        <button
-          type="button"
           onClick={autoZigZagScan}
           disabled={isAutoScanning}
         >
-          {isAutoScanning ? "Scanning..." : "Auto Zig-Zag Scan"}
-        </button>
-
-        <button type="button" onClick={resetScan}>
-          Reset
+          {isAutoScanning ? "Scanning..." : "Run Zig-Zag Scan"}
         </button>
       </div>
 
@@ -318,31 +309,22 @@ function Step9ZigZagScanning({ quantizationData, dcCodingData, onZigZagChange })
           </div>
 
           <p className="step9PreviousNote">
-            Click Scan Selected Position to move forward step by step, or use
-            Auto Zig-Zag Scan to reveal the entire path.
+            Click Run Zig-Zag Scan to reveal the entire path.
           </p>
         </div>
 
         <div className="step9OutputCard">
-          <h3>Full Zig-Zag Sequence (64 values)</h3>
+          <h3>Full Zig-Zag Sequence (as a 1D string, not a matrix)</h3>
 
-          <div className="step9SequenceGrid">
-            {fullSequence.map((value, index) => {
-              const isRevealed = scannedIndexes.includes(index);
-
-              return (
-                <span
-                  key={`step9-seq-${index}`}
-                  className={`step9SeqCell ${
-                    index === 0 ? "step9SeqDcCell" : ""
-                  } ${isRevealed ? "step9SeqRevealed" : "step9SeqHidden"}`}
-                  title={index === 0 ? "DC value" : `AC value #${index}`}
-                >
-                  {isRevealed ? value : "—"}
-                </span>
-              );
-            })}
-          </div>
+          <p className="step9SequenceString">
+            "
+            {fullSequence
+              .map((value, index) =>
+                scannedIndexes.includes(index) ? value : "_"
+              )
+              .join(", ")}
+            "
+          </p>
 
           <div className="step9SplitRow">
             <div>
@@ -351,7 +333,7 @@ function Step9ZigZagScanning({ quantizationData, dcCodingData, onZigZagChange })
                 {scannedIndexes.includes(0) ? dcValue : "—"}
               </strong>
               <small>
-                Already processed in Step 8
+                Already computed automatically
                 {dcCodingData
                   ? ` (difference = ${dcCodingData.dcDifference})`
                   : ""}
@@ -361,15 +343,16 @@ function Step9ZigZagScanning({ quantizationData, dcCodingData, onZigZagChange })
             <div>
               <span>AC Sequence Length</span>
               <strong>{acSequence.length}</strong>
-              <small>Sent forward to Run-Length Encoding in Step 10</small>
+              <small>Sent forward as a string to Run-Length Encoding in Step 9</small>
             </div>
           </div>
         </div>
       </div>
 
       <div className="rgbInfoBox">
-        Step 9 Output = 1D zig-zag sequence. DC value is already handled;
-        remaining 63 AC values continue to Run-Length Encoding in Step 10.
+        Step 8 Output = 1D zig-zag sequence (string form). DC value is already
+        handled; remaining 63 AC values continue to Run-Length Encoding in
+        Step 9.
       </div>
     </div>
   );

@@ -87,12 +87,17 @@ function OutputBlockGrid({ values, selectedCellIndex, revealedIndexes }) {
   );
 }
 
-function Step5LevelShifting({ selectedBlockData, onLevelShiftChange }) {
+function Step5LevelShifting({
+  selectedBlockData,
+  onLevelShiftChange,
+  selectedCellIndex,
+  setSelectedCellIndex,
+  revealedIndexes,
+  setRevealedIndexes,
+  isAutoShifting,
+  setIsAutoShifting,
+}) {
   const runRef = useRef(0);
-
-  const [selectedCellIndex, setSelectedCellIndex] = useState(0);
-  const [revealedIndexes, setRevealedIndexes] = useState([]);
-  const [isAutoShifting, setIsAutoShifting] = useState(false);
   const [showCalculation, setShowCalculation] = useState(false);
 
   const inputBlock = useMemo(
@@ -133,12 +138,6 @@ function Step5LevelShifting({ selectedBlockData, onLevelShiftChange }) {
   const progressPercent = Math.round((shiftedCount / 64) * 100);
 
   useEffect(() => {
-    runRef.current += 1;
-    setSelectedCellIndex(0);
-    setRevealedIndexes([]);
-    setIsAutoShifting(false);
-    setShowCalculation(false);
-
     if (typeof onLevelShiftChange === "function") {
       onLevelShiftChange({
         component: componentName,
@@ -201,6 +200,8 @@ function Step5LevelShifting({ selectedBlockData, onLevelShiftChange }) {
     setIsAutoShifting(false);
     setShowCalculation(false);
   }
+  void resetLevelShifting;
+  void shiftSelectedCell;
 
   return (
     <div className="step5SimplePage">
@@ -247,22 +248,10 @@ function Step5LevelShifting({ selectedBlockData, onLevelShiftChange }) {
       <div className="step5ControlBar">
         <button
           type="button"
-          onClick={shiftSelectedCell}
-          disabled={isAutoShifting}
-        >
-          Shift Selected Cell
-        </button>
-
-        <button
-          type="button"
           onClick={autoShiftFullBlock}
           disabled={isAutoShifting}
         >
-          {isAutoShifting ? "Shifting..." : "Auto Level Shift Full Block"}
-        </button>
-
-        <button type="button" onClick={resetLevelShifting}>
-          Reset
+          {isAutoShifting ? "Shifting..." : "Run Level Shift (Subtract 128)"}
         </button>
       </div>
 
@@ -306,13 +295,13 @@ function Step5LevelShifting({ selectedBlockData, onLevelShiftChange }) {
             revealedIndexes={revealedIndexes}
             onCellSelect={(index) => {
               setSelectedCellIndex(index);
-              setShowCalculation(false);
+              setShowCalculation(revealedIndexes.includes(index));
             }}
           />
 
           <p className="step5SmallNote">
             These 64 values come from the selected block in Step 4. Click any
-            cell to see its level shifting calculation.
+            cell (after running the shift) to inspect its calculation.
           </p>
         </div>
 
@@ -361,7 +350,7 @@ function Step5LevelShifting({ selectedBlockData, onLevelShiftChange }) {
             </div>
           ) : (
             <div className="step5PendingBox">
-              Select a cell and click Shift Selected Cell to reveal the
+              Select a cell and run the level shift to reveal the
               calculation.
             </div>
           )}

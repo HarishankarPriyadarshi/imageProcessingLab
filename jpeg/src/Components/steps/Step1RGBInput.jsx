@@ -92,16 +92,13 @@ function Step1RGBInput({
   redMatrix,
   greenMatrix,
   blueMatrix,
-  realPhotoStatus,
-  onSelectRealPhoto,
-  realPhotoCrop,
 }) {
   const [showTupleMatrix, setShowTupleMatrix] = useState(false);
   const [showFormula, setShowFormula] = useState(false);
   const [showChannels, setShowChannels] = useState(false);
 
-  const matrixSize = activeRgbMatrix.length;
-  const totalPixels = activeRgbMatrix.flat().length;
+  const matrixSize = activeRgbMatrix ? activeRgbMatrix.length : 16;
+  const totalPixels = activeRgbMatrix ? activeRgbMatrix.flat().length : 0;
 
   const selectedRow = Math.floor(selectedPixelIndex / matrixSize);
   const selectedCol = selectedPixelIndex % matrixSize;
@@ -118,12 +115,19 @@ function Step1RGBInput({
     };
   }, [selectedFormula, selectedRow, selectedCol]);
 
-  const isValidRgbMatrix = activeRgbMatrix.flat().every(
-    (pixel) =>
-      Array.isArray(pixel) &&
-      pixel.length === 3 &&
-      pixel.every((value) => value >= 0 && value <= 255)
-  );
+  const isValidRgbMatrix = activeRgbMatrix
+    ? activeRgbMatrix.flat().every(
+        (pixel) =>
+          Array.isArray(pixel) &&
+          pixel.length === 3 &&
+          pixel.every((value) => value >= 0 && value <= 255)
+      )
+    : false;
+
+  const matrixLabel =
+    selectedMatrixType === "random"
+      ? "Random Matrix"
+      : rgbMatrixPresets[selectedMatrixType]?.label || "No Matrix Selected";
 
   return (
     <div className="step1SimplePage">
@@ -153,21 +157,6 @@ function Step1RGBInput({
           Random Matrix
         </button>
 
-        <button
-          type="button"
-          className={`matrixPresetBtn realPhotoPresetBtn ${
-            selectedMatrixType === "real" ? "activeMatrixPreset" : ""
-          }`}
-          onClick={onSelectRealPhoto}
-          disabled={realPhotoStatus !== "ready"}
-          title="Loads actual RGB pixel values from a real photo using canvas getImageData()"
-        >
-          {realPhotoStatus === "ready"
-            ? "Real Photo Patch (Live Pixels)"
-            : realPhotoStatus === "error"
-            ? "Real Photo Unavailable"
-            : "Loading Real Photo..."}
-        </button>
       </div>
 
       <div className="step1SimpleConceptBox">
@@ -178,12 +167,16 @@ function Step1RGBInput({
         </div>
 
         <div>
-          <strong>Current Matrix:</strong> {matrixSize}×{matrixSize} RGB patch ={" "}
-          {totalPixels} pixels.
-          <span className={isValidRgbMatrix ? "step1ValidText" : "step1ErrorText"}>
-            {" "}
-            {isValidRgbMatrix ? "Valid RGB range." : "Invalid RGB values."}
-          </span>
+          <strong>Current Matrix:</strong>{" "}
+          {activeRgbMatrix
+            ? `${matrixSize}×${matrixSize} RGB patch = ${totalPixels} pixels.`
+            : "No matrix selected yet."}
+          {activeRgbMatrix && (
+            <span className={isValidRgbMatrix ? "step1ValidText" : "step1ErrorText"}>
+              {" "}
+              {isValidRgbMatrix ? "Valid RGB range." : "Invalid RGB values."}
+            </span>
+          )}
         </div>
 
         <div>
@@ -194,8 +187,15 @@ function Step1RGBInput({
 
       <div className="step1SimpleMainGrid">
         <div className="step1SimpleCard">
-          <h3>Input: {matrixSize}×{matrixSize} RGB Sample Patch</h3>
+          <h3>Input: {matrixSize}×{matrixSize} RGB {matrixLabel}</h3>
 
+          {!activeRgbMatrix ? (
+            <p className="matrixNote">
+              Select an RGB matrix above (Sample / Bright / Dark / Random) to
+              view the input patch.
+            </p>
+          ) : (
+          <>
           <div
             className="step1SimplePatchGrid"
             style={{
@@ -227,8 +227,11 @@ function Step1RGBInput({
             This grid is the visual form of the input RGB image patch. Click any
             pixel to inspect its Red, Green and Blue values.
           </p>
+          </>
+          )}
         </div>
 
+        {activeRgbMatrix && (
         <div className="step1SimpleInspector">
           <h3>Selected RGB Pixel</h3>
 
@@ -276,8 +279,10 @@ function Step1RGBInput({
             One RGB pixel stores three separate color component values.
           </p>
         </div>
+        )}
       </div>
 
+      {activeRgbMatrix && (
       <div className="step1SimpleActionRow">
         <button type="button" onClick={() => setShowFormula((prev) => !prev)}>
           {showFormula ? "Hide Value Source Formula" : "Show Value Source Formula"}
@@ -296,6 +301,7 @@ function Step1RGBInput({
             : "Separate RGB Components into Matrices"}
         </button>
       </div>
+      )}
 
       {showFormula && (
         <div className="step1SimpleCard step1SimpleFade">

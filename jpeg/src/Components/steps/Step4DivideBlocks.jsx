@@ -103,21 +103,25 @@ function SelectedBlockGrid({ values, revealedIndexes }) {
   );
 }
 
-function Step4DivideBlocks({ yMatrix, onSelectedBlockChange }) {
-  const runRef = useRef(0);
-
-  const [selectedBlockIndex, setSelectedBlockIndex] = useState(0);
-  const [revealedIndexes, setRevealedIndexes] = useState([]);
-  const [isAutoCreating, setIsAutoCreating] = useState(false);
-
+function Step4DivideBlocks({
+  yMatrix,
+  onSelectedBlockChange,
+  selectedBlockIndex,
+  setSelectedBlockIndex,
+  revealedIndexes,
+  setRevealedIndexes,
+}) {
   const normalizedYMatrix = useMemo(() => normalize16x16Matrix(yMatrix), [yMatrix]);
 
+  const hasSelection = selectedBlockIndex !== null;
+  const effectiveBlockIndex = selectedBlockIndex ?? 0;
+
   const selectedBlock = useMemo(
-    () => extract8x8Block(normalizedYMatrix, selectedBlockIndex),
-    [normalizedYMatrix, selectedBlockIndex]
+    () => extract8x8Block(normalizedYMatrix, effectiveBlockIndex),
+    [normalizedYMatrix, effectiveBlockIndex]
   );
 
-  const { startRow, startCol } = getBlockStart(selectedBlockIndex);
+  const { startRow, startCol } = getBlockStart(effectiveBlockIndex);
 
   const blockCards = [
     {
@@ -162,52 +166,21 @@ function Step4DivideBlocks({ yMatrix, onSelectedBlockChange }) {
   }
 
 useEffect(() => {
-  sendSelectedBlockToParent(selectedBlockIndex);
+  if (selectedBlockIndex !== null) sendSelectedBlockToParent(selectedBlockIndex);
 }, [selectedBlockIndex]);
 
+  const isExtracted = revealedIndexes.length > 0;
+
   function handleBlockSelect(blockIndex) {
-    runRef.current += 1;
+    if (isExtracted) return;
     setSelectedBlockIndex(blockIndex);
     setRevealedIndexes([]);
-    setIsAutoCreating(false);
     sendSelectedBlockToParent(blockIndex);
   }
 
   function createSelectedBlock() {
-    runRef.current += 1;
-    setIsAutoCreating(false);
     setRevealedIndexes(Array.from({ length: 64 }, (_, index) => index));
-    sendSelectedBlockToParent(selectedBlockIndex);
-  }
-
-  async function autoCreateSelectedBlock() {
-    if (isAutoCreating) return;
-
-    const runId = runRef.current + 1;
-    runRef.current = runId;
-
-    setIsAutoCreating(true);
-    setRevealedIndexes([]);
-    sendSelectedBlockToParent(selectedBlockIndex);
-
-    for (let index = 0; index < 64; index += 1) {
-      if (runRef.current !== runId) return;
-
-      setRevealedIndexes((prev) =>
-        prev.includes(index) ? prev : [...prev, index]
-      );
-
-      await wait(40);
-    }
-
-    setIsAutoCreating(false);
-  }
-
-  function resetBlockCreation() {
-    runRef.current += 1;
-    setIsAutoCreating(false);
-    setRevealedIndexes([]);
-    sendSelectedBlockToParent(selectedBlockIndex);
+    sendSelectedBlockToParent(effectiveBlockIndex);
   }
 
   return (
@@ -240,6 +213,7 @@ useEffect(() => {
                 ? "step4ActiveBlockSelectCard"
                 : ""
             }`}
+            disabled={isExtracted}
             onClick={() => handleBlockSelect(block.blockIndex)}
           >
             <strong>{block.title}</strong>
@@ -250,20 +224,8 @@ useEffect(() => {
       </div>
 
       <div className="step4ControlBar">
-        <button type="button" onClick={createSelectedBlock} disabled={isAutoCreating}>
-          Create Selected 8×8 Block
-        </button>
-
-        <button
-          type="button"
-          onClick={autoCreateSelectedBlock}
-          disabled={isAutoCreating}
-        >
-          {isAutoCreating ? "Creating Block..." : "Auto Create Selected Block"}
-        </button>
-
-        <button type="button" onClick={resetBlockCreation}>
-          Reset
+        <button type="button" onClick={createSelectedBlock} disabled={!hasSelection || isExtracted}>
+          {isExtracted ? "Block Extracted ✓" : "Extract Selected 8×8 Block"}
         </button>
       </div>
 
@@ -274,7 +236,7 @@ useEffect(() => {
         <b>Divide into four 8×8 blocks</b>
         <span>↓</span>
         <b>
-          Selected Block {getBlockLabel(selectedBlockIndex)} → Level Shifting
+          Selected Block {hasSelection ? getBlockLabel(effectiveBlockIndex) : "—"} → Level Shifting
         </b>
       </div>
 
@@ -304,7 +266,7 @@ useEffect(() => {
 
           <div className="step4InfoRow">
             <span>Selected Block</span>
-            <strong>{getBlockLabel(selectedBlockIndex)}</strong>
+            <strong>{hasSelection ? getBlockLabel(effectiveBlockIndex) : "Not selected"}</strong>
           </div>
 
           <div className="step4InfoRow">
@@ -336,7 +298,7 @@ useEffect(() => {
 
         <div className="step4Card">
           <h3>
-            Output: Selected Processing Block {getBlockLabel(selectedBlockIndex)}
+            Output: Selected Processing Block {hasSelection ? getBlockLabel(effectiveBlockIndex) : "—"}
           </h3>
 
           <SelectedBlockGrid

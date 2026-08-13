@@ -68,12 +68,19 @@ function normalizeAcSequence(sequence) {
   );
 }
 
-function Step10RunLengthEncoding({ zigZagData, dcCodingData, onRleChange }) {
+function Step10RunLengthEncoding({
+  zigZagData,
+  dcCodingData,
+  onRleChange,
+  selectedIndex,
+  setSelectedIndex,
+  encodedUpTo,
+  setEncodedUpTo,
+  isAutoEncoding,
+  setIsAutoEncoding,
+  setComplete,
+}) {
   const runRef = useRef(0);
-
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [encodedUpTo, setEncodedUpTo] = useState(-1);
-  const [isAutoEncoding, setIsAutoEncoding] = useState(false);
 
   const acSequence = useMemo(
     () => normalizeAcSequence(zigZagData?.acSequence),
@@ -116,12 +123,8 @@ function Step10RunLengthEncoding({ zigZagData, dcCodingData, onRleChange }) {
   }
 
   useEffect(() => {
-    runRef.current += 1;
-    setSelectedIndex(0);
-    setEncodedUpTo(-1);
-    setIsAutoEncoding(false);
-
     emitRleData(rleSymbols);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zigZagData]);
 
   function encodeSelected() {
@@ -148,6 +151,16 @@ function Step10RunLengthEncoding({ zigZagData, dcCodingData, onRleChange }) {
     return rleSymbols.length - 1;
   }
 
+  function acPositionAtSymbol(symbolIndex) {
+    let counted = 0;
+    for (let s = 0; s <= symbolIndex; s += 1) {
+      const symbol = rleSymbols[s];
+      if (!symbol || symbol.type === "EOB") continue;
+      counted += (symbol.run || 0) + 1;
+    }
+    return Math.min(counted, acSequence.length) - 1;
+  }
+
   async function autoRLE() {
     if (isAutoEncoding) return;
 
@@ -156,14 +169,21 @@ function Step10RunLengthEncoding({ zigZagData, dcCodingData, onRleChange }) {
 
     setIsAutoEncoding(true);
     setEncodedUpTo(-1);
+    setSelectedIndex(0);
 
     for (let i = 0; i < rleSymbols.length; i += 1) {
       if (runRef.current !== runId) return;
       setEncodedUpTo(i);
+
+      const pos = acPositionAtSymbol(i);
+      if (pos >= 0) setSelectedIndex(pos);
+
       await wait(220);
     }
 
+    setSelectedIndex(acSequence.length - 1);
     setIsAutoEncoding(false);
+    if (typeof setComplete === "function") setComplete(true);
     emitRleData(rleSymbols);
   }
 
@@ -173,12 +193,14 @@ function Step10RunLengthEncoding({ zigZagData, dcCodingData, onRleChange }) {
     setEncodedUpTo(-1);
     setIsAutoEncoding(false);
   }
+  void resetRLE;
+  void encodeSelected;
 
   return (
     <div className="step10SimplePage">
       <div className="step10ConceptBox">
         <div>
-          <strong>Step 10 Concept:</strong> After zig-zag scanning, many
+          <strong>Step 9 Concept:</strong> After zig-zag scanning, many
           high-frequency AC coefficients become zero. Run-Length Encoding
           stores the count of zeros before a non-zero value instead of storing
           every zero separately.
@@ -199,7 +221,7 @@ function Step10RunLengthEncoding({ zigZagData, dcCodingData, onRleChange }) {
 
       <div className="step10SummaryGrid">
         <div>
-          <span>Input From Step 9</span>
+          <span>Input From Step 8</span>
           <strong>
             {componentName} Block B{blockNumber}
           </strong>
@@ -213,38 +235,26 @@ function Step10RunLengthEncoding({ zigZagData, dcCodingData, onRleChange }) {
         </div>
 
         <div>
-          <span>Output To Step 11</span>
+          <span>Output To Step 10</span>
           <strong>RLE Symbol List</strong>
           <small>Sent to Huffman Encoding</small>
         </div>
       </div>
 
       <div className="step10ControlBar">
-        <button
-          type="button"
-          onClick={encodeSelected}
-          disabled={isAutoEncoding}
-        >
-          Encode Selected
-        </button>
-
         <button type="button" onClick={autoRLE} disabled={isAutoEncoding}>
-          {isAutoEncoding ? "Encoding..." : "Auto RLE"}
-        </button>
-
-        <button type="button" onClick={resetRLE}>
-          Reset
+          {isAutoEncoding ? "Encoding..." : "Run Run-Length Encoding"}
         </button>
       </div>
 
       <div className="step10ProgressBox">
         <div className="step10ProgressTop">
           <span>
-            AC Position: {selectedIndex} / {acSequence.length}
+            AC Position: {selectedIndex + 1} / {acSequence.length}
           </span>
 
           <strong>
-            {Math.round((selectedIndex / acSequence.length) * 100)}%
+            {Math.round(((selectedIndex + 1) / acSequence.length) * 100)}%
           </strong>
         </div>
 
@@ -253,7 +263,7 @@ function Step10RunLengthEncoding({ zigZagData, dcCodingData, onRleChange }) {
             className="step10ProgressFill"
             style={{
               width: `${Math.round(
-                (selectedIndex / acSequence.length) * 100
+                ((selectedIndex + 1) / acSequence.length) * 100
               )}%`,
             }}
           />
@@ -262,7 +272,7 @@ function Step10RunLengthEncoding({ zigZagData, dcCodingData, onRleChange }) {
 
       <div className="step10MainGrid">
         <div className="step10Card">
-          <h3>Input: AC Sequence From Step 9</h3>
+          <h3>Input: AC Sequence From Step 8</h3>
 
           <div className="step10AcGrid">
             {acSequence.map((value, index) => (
@@ -281,8 +291,7 @@ function Step10RunLengthEncoding({ zigZagData, dcCodingData, onRleChange }) {
           </div>
 
           <p className="step10SmallNote">
-            Click a cell to select an AC position, then Encode Selected to
-            step forward through the run counter.
+            Click a cell to inspect an AC position after running the encoding.
           </p>
         </div>
 
@@ -313,8 +322,8 @@ function Step10RunLengthEncoding({ zigZagData, dcCodingData, onRleChange }) {
           </div>
 
           <p className="step10PreviousNote">
-            Category (size) and magnitude bits use the same scheme as DC
-            coding in Step 8.
+            Category (size) and magnitude bits use the same scheme as the
+            automatic DC coding step.
           </p>
         </div>
 
@@ -361,8 +370,8 @@ function Step10RunLengthEncoding({ zigZagData, dcCodingData, onRleChange }) {
       </div>
 
       <div className="rgbInfoBox">
-        Step 10 Output = Run-length encoded AC symbol list, ending in EOB. This
-        list moves forward to Huffman Encoding in Step 11.
+        Step 9 Output = Run-length encoded AC symbol list, ending in EOB. This
+        list moves forward to Huffman Encoding in Step 10.
       </div>
     </div>
   );

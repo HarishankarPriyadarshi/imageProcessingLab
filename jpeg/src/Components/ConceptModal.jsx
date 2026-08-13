@@ -7,7 +7,6 @@ import Step4DivideBlocks from "./steps/Step4DivideBlocks.jsx";
 import Step5LevelShifting from "./steps/Step5LevelShifting.jsx";
 import Step6DCTTransform from "./steps/Step6DCTTransform.jsx";
 import Step7Quantization from "./steps/Step7Quantization.jsx";
-import Step8DCDifferenceCoding from "./steps/Step8DCDifferenceCoding.jsx";
 import Step9ZigZagScanning from "./steps/Step9ZigZagScanning.jsx";
 import Step10RunLengthEncoding from "./steps/Step10RunLengthEncoding.jsx";
 import Step11HuffmanEncoding from "./steps/Step11HuffmanEncoding.jsx";
@@ -255,34 +254,47 @@ function RevealedChannelMatrix({
   );
 }
 function ConceptModal({ onClose }) {
-const [started, setStarted] = useState(false);
-const [activeStep, setActiveStep] = useState(0);
+const [started, setStarted] = useState(true);
+const [activeStep, setActiveStep] = useState(1);
 const [visible, setVisible] = useState(true);
-const [maxUnlockedStep, setMaxUnlockedStep] = useState(0);
+const [maxUnlockedStep, setMaxUnlockedStep] = useState(1);
 
-const [selectedMatrixType, setSelectedMatrixType] = useState("sample");
-const [activeRgbMatrix, setActiveRgbMatrix] = useState(
-  rgbMatrixPresets.sample.matrix
-);
-const [realPhotoMatrix, setRealPhotoMatrix] = useState(null);
-const [realPhotoStatus, setRealPhotoStatus] = useState("loading");
-
-useEffect(() => {
-  const img = new Image();
-
-  img.onload = () => {
-    try {
-      const matrix = extractRealPixelMatrix(img);
-      setRealPhotoMatrix(matrix);
-      setRealPhotoStatus("ready");
-    } catch {
-      setRealPhotoStatus("error");
-    }
-  };
-
-  img.onerror = () => setRealPhotoStatus("error");
-  img.src = REAL_PHOTO_URL;
-}, []);
+const [selectedMatrixType, setSelectedMatrixType] = useState(null);
+const [activeRgbMatrix, setActiveRgbMatrix] = useState(null);
+const [showMatrixRequiredPopup, setShowMatrixRequiredPopup] = useState(false);
+const [showConversionRequiredPopup, setShowConversionRequiredPopup] = useState(false);
+const [showSubsamplingRequiredPopup, setShowSubsamplingRequiredPopup] = useState(false);
+const [showBlockRequiredPopup, setShowBlockRequiredPopup] = useState(false);
+const [step4SelectedBlockIndex, setStep4SelectedBlockIndex] = useState(null);
+const [step4RevealedIndexes, setStep4RevealedIndexes] = useState([]);
+const [step5SelectedCellIndex, setStep5SelectedCellIndex] = useState(0);
+const [step5RevealedIndexes, setStep5RevealedIndexes] = useState([]);
+const [step5IsAutoShifting, setStep5IsAutoShifting] = useState(false);
+const [showLevelShiftRequiredPopup, setShowLevelShiftRequiredPopup] = useState(false);
+const [step6SelectedCoefficientIndex, setStep6SelectedCoefficientIndex] = useState(0);
+const [step6RevealedIndexes, setStep6RevealedIndexes] = useState([]);
+const [step6IsAutoApplying, setStep6IsAutoApplying] = useState(false);
+const [showDctRequiredPopup, setShowDctRequiredPopup] = useState(false);
+const [step7SelectedIndex, setStep7SelectedIndex] = useState(0);
+const [step7RevealedIndexes, setStep7RevealedIndexes] = useState([]);
+const [step7IsAutoQuantizing, setStep7IsAutoQuantizing] = useState(false);
+const [step7Quality, setStep7Quality] = useState(50);
+const [showQuantizationRequiredPopup, setShowQuantizationRequiredPopup] = useState(false);
+const [step9ScanIndex, setStep9ScanIndex] = useState(0);
+const [step9ScannedIndexes, setStep9ScannedIndexes] = useState([]);
+const [step9IsAutoScanning, setStep9IsAutoScanning] = useState(false);
+const [showZigZagRequiredPopup, setShowZigZagRequiredPopup] = useState(false);
+const [step10SelectedIndex, setStep10SelectedIndex] = useState(0);
+const [step10EncodedUpTo, setStep10EncodedUpTo] = useState(-1);
+const [step10IsAutoEncoding, setStep10IsAutoEncoding] = useState(false);
+const [step10Complete, setStep10Complete] = useState(false);
+const [showRleRequiredPopup, setShowRleRequiredPopup] = useState(false);
+const [step11IsDcEncoded, setStep11IsDcEncoded] = useState(false);
+const [step11AcEncodedUpTo, setStep11AcEncodedUpTo] = useState(-1);
+const [step11IsAutoEncoding, setStep11IsAutoEncoding] = useState(false);
+const [step11Complete, setStep11Complete] = useState(false);
+const [showHuffmanRequiredPopup, setShowHuffmanRequiredPopup] = useState(false);
+const [step12IsGenerated, setStep12IsGenerated] = useState(false);
 const [selectedPixelIndex, setSelectedPixelIndex] = useState(0);
 const conversionRunRef = useRef(0);
 
@@ -300,20 +312,22 @@ const [huffmanData, setHuffmanData] = useState(null);
 const [step3RevealedGroupIndexes, setStep3RevealedGroupIndexes] = useState([]);
 const currentStep = activeStep > 0 ? steps[activeStep - 1] : null;
 
-const selectedPixel = activeRgbMatrix.flat()[selectedPixelIndex] || [0, 0, 0];
+const safeRgbMatrix = activeRgbMatrix || rgbMatrixPresets.sample.matrix;
 
-const redMatrix = activeRgbMatrix.map((row) =>
+const selectedPixel = safeRgbMatrix.flat()[selectedPixelIndex] || [0, 0, 0];
+
+const redMatrix = safeRgbMatrix.map((row) =>
   row.map((pixel) => pixel[0])
 );
 
-const greenMatrix = activeRgbMatrix.map((row) =>
+const greenMatrix = safeRgbMatrix.map((row) =>
   row.map((pixel) => pixel[1])
 );
 
-const blueMatrix = activeRgbMatrix.map((row) =>
+const blueMatrix = safeRgbMatrix.map((row) =>
   row.map((pixel) => pixel[2])
 );
-const yCbCrMatrix = activeRgbMatrix.map((row) =>
+const yCbCrMatrix = safeRgbMatrix.map((row) =>
   row.map((pixel) => convertRgbToYCbCr(pixel))
 );
 
@@ -336,13 +350,6 @@ function handleMatrixPresetChange(type) {
   resetStep2Conversion();
 }
 
-function handleRealPhotoSelect() {
-  if (realPhotoStatus !== "ready" || !realPhotoMatrix) return;
-  setSelectedMatrixType("real");
-  setActiveRgbMatrix(realPhotoMatrix);
-  resetStep2Conversion();
-}
-
 function handleRandomMatrix() {
   setSelectedMatrixType("random");
   setActiveRgbMatrix(createRandomRgbMatrix());
@@ -350,6 +357,48 @@ function handleRandomMatrix() {
 }
   const isFirstStep = activeStep === 1;
   const isLastStep = activeStep === steps.length;
+
+useEffect(() => {
+  if (!quantizationData?.values) return;
+
+  const quantizedMatrix = Array.from({ length: 8 }, (_, row) =>
+    Array.from({ length: 8 }, (_, col) => {
+      const value = quantizationData.values[row]?.[col];
+      return typeof value === "number" ? value : 0;
+    })
+  );
+
+  const previousDc = 0;
+  const currentDc = quantizedMatrix[0][0];
+  const dcDifference = currentDc - previousDc;
+  const absValue = Math.abs(dcDifference);
+  const dcCategory = absValue === 0 ? 0 : Math.floor(Math.log2(absValue)) + 1;
+  const magnitudeBits =
+    dcCategory === 0
+      ? "—"
+      : (() => {
+          const absBinary = absValue.toString(2).padStart(dcCategory, "0");
+          return dcDifference > 0
+            ? absBinary
+            : absBinary
+                .split("")
+                .map((bit) => (bit === "0" ? "1" : "0"))
+                .join("");
+        })();
+
+  setDcCodingData({
+    component: quantizationData.component || "Y",
+    blockIndex: quantizationData.blockIndex ?? 0,
+    quantizedMatrix,
+    previousDc,
+    currentDc,
+    dcDifference,
+    dcCategory,
+    magnitudeBits,
+    startRow: quantizationData.startRow ?? 0,
+    startCol: quantizationData.startCol ?? 0,
+  });
+}, [quantizationData]);
 function resetStep2Conversion() {
   conversionRunRef.current += 1;
   setIsAutoConverting(false);
@@ -365,19 +414,31 @@ function resetStep2Conversion() {
   setRleData(null);
   setHuffmanData(null);
   setStep3RevealedGroupIndexes([]);
+  setStep4SelectedBlockIndex(null);
+  setStep4RevealedIndexes([]);
+  setStep5SelectedCellIndex(0);
+  setStep5RevealedIndexes([]);
+  setStep5IsAutoShifting(false);
+  setStep6SelectedCoefficientIndex(0);
+  setStep6RevealedIndexes([]);
+  setStep6IsAutoApplying(false);
+  setStep7SelectedIndex(0);
+  setStep7RevealedIndexes([]);
+  setStep7IsAutoQuantizing(false);
+  setStep7Quality(50);
+  setStep9ScanIndex(0);
+  setStep9ScannedIndexes([]);
+  setStep9IsAutoScanning(false);
+  setStep10SelectedIndex(0);
+  setStep10EncodedUpTo(-1);
+  setStep10IsAutoEncoding(false);
+  setStep10Complete(false);
+  setStep11IsDcEncoded(false);
+  setStep11AcEncodedUpTo(-1);
+  setStep11IsAutoEncoding(false);
+  setStep11Complete(false);
+  setStep12IsGenerated(false);
 }
-function convertSelectedPixelOnly() {
-  conversionRunRef.current += 1;
-  setIsAutoConverting(false);
-  setShowSelectedCalculation(true);
-
-  setConvertedPixelIndexes((prevIndexes) =>
-    prevIndexes.includes(selectedPixelIndex)
-      ? prevIndexes
-      : [...prevIndexes, selectedPixelIndex].sort((a, b) => a - b)
-  );
-}
-
 async function autoConvertFullMatrix() {
   if (isAutoConverting) return;
 
@@ -388,7 +449,7 @@ async function autoConvertFullMatrix() {
   setShowSelectedCalculation(true);
   setConvertedPixelIndexes([]);
 
-  const totalPixels = activeRgbMatrix.flat().length;
+  const totalPixels = safeRgbMatrix.flat().length;
 
   for (let index = 0; index < totalPixels; index += 1) {
     if (conversionRunRef.current !== runId) return;
@@ -415,7 +476,63 @@ function startSimulation() {
 function nextStep() {
   if (!started || isLastStep) return;
 
-  const next = activeStep + 1;
+  if (activeStep === 1 && !selectedMatrixType) {
+    setShowMatrixRequiredPopup(true);
+    return;
+  }
+
+  if (activeStep === 2 && convertedPixelIndexes.length < safeRgbMatrix.flat().length) {
+    setShowConversionRequiredPopup(true);
+    return;
+  }
+
+  if (activeStep === 3) {
+    const cbRows = cbMatrix.length;
+    const cbCols = cbMatrix[0]?.length || cbRows;
+    const totalGroups = Math.floor(cbRows / 2) * Math.floor(cbCols / 2);
+
+    if (step3RevealedGroupIndexes.length < totalGroups) {
+      setShowSubsamplingRequiredPopup(true);
+      return;
+    }
+  }
+
+  if (activeStep === 4 && step4SelectedBlockIndex === null) {
+    setShowBlockRequiredPopup(true);
+    return;
+  }
+
+  if (activeStep === 5 && step5RevealedIndexes.length < 64) {
+    setShowLevelShiftRequiredPopup(true);
+    return;
+  }
+
+  if (activeStep === 6 && step6RevealedIndexes.length < 64) {
+    setShowDctRequiredPopup(true);
+    return;
+  }
+
+  if (activeStep === 7 && step7RevealedIndexes.length < 64) {
+    setShowQuantizationRequiredPopup(true);
+    return;
+  }
+
+  if (activeStep === 9 && step9ScannedIndexes.length < 64) {
+    setShowZigZagRequiredPopup(true);
+    return;
+  }
+
+  if (activeStep === 10 && !step10Complete) {
+    setShowRleRequiredPopup(true);
+    return;
+  }
+
+  if (activeStep === 11 && !step11Complete) {
+    setShowHuffmanRequiredPopup(true);
+    return;
+  }
+
+  const next = activeStep + 1 === 8 ? activeStep + 2 : activeStep + 1;
 
   setActiveStep(next);
   setMaxUnlockedStep((prevMax) => Math.max(prevMax, next));
@@ -423,7 +540,7 @@ function nextStep() {
 
   function prevStep() {
     if (!started || isFirstStep) return;
-    setActiveStep((prev) => prev - 1);
+    setActiveStep((prev) => (prev - 1 === 8 ? prev - 2 : prev - 1));
   }
 
 function goToStep(stepId) {
@@ -457,6 +574,116 @@ function goToStep(stepId) {
   return (
     <div className="overlay">
       <div className="modal">
+        {showMatrixRequiredPopup && (
+          <div className="matrixRequiredOverlay">
+            <div className="matrixRequiredPopup">
+              <h3>Select an Input Matrix</h3>
+              <p>Please select an RGB matrix (Sample / Bright / Dark / Random) before proceeding to the next step.</p>
+              <button type="button" onClick={() => setShowMatrixRequiredPopup(false)}>
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+        {showConversionRequiredPopup && (
+          <div className="matrixRequiredOverlay">
+            <div className="matrixRequiredPopup">
+              <h3>Run the Color Transform</h3>
+              <p>Please run "RGB → YCbCr Color Transform" on the full patch before proceeding to the next step.</p>
+              <button type="button" onClick={() => setShowConversionRequiredPopup(false)}>
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+        {showSubsamplingRequiredPopup && (
+          <div className="matrixRequiredOverlay">
+            <div className="matrixRequiredPopup">
+              <h3>Run Chroma Downsampling</h3>
+              <p>Please run "Run 2×2 Chroma Downsampling" to reduce Cb and Cr before proceeding to the next step.</p>
+              <button type="button" onClick={() => setShowSubsamplingRequiredPopup(false)}>
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+        {showBlockRequiredPopup && (
+          <div className="matrixRequiredOverlay">
+            <div className="matrixRequiredPopup">
+              <h3>Select an 8×8 Block</h3>
+              <p>Please select one 8×8 block (B1–B4) from the Y matrix before proceeding to the next step.</p>
+              <button type="button" onClick={() => setShowBlockRequiredPopup(false)}>
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+        {showLevelShiftRequiredPopup && (
+          <div className="matrixRequiredOverlay">
+            <div className="matrixRequiredPopup">
+              <h3>Run Level Shifting</h3>
+              <p>Please run "Run Level Shift (Subtract 128)" on the full block before proceeding to the next step.</p>
+              <button type="button" onClick={() => setShowLevelShiftRequiredPopup(false)}>
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+        {showDctRequiredPopup && (
+          <div className="matrixRequiredOverlay">
+            <div className="matrixRequiredPopup">
+              <h3>Run the 2D DCT</h3>
+              <p>Please run "Run 2D DCT Transform" on the full block before proceeding to the next step.</p>
+              <button type="button" onClick={() => setShowDctRequiredPopup(false)}>
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+        {showQuantizationRequiredPopup && (
+          <div className="matrixRequiredOverlay">
+            <div className="matrixRequiredPopup">
+              <h3>Run Quantization</h3>
+              <p>Please run "Run Quantization (DCT ÷ Table)" on the full block before proceeding to the next step.</p>
+              <button type="button" onClick={() => setShowQuantizationRequiredPopup(false)}>
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+        {showZigZagRequiredPopup && (
+          <div className="matrixRequiredOverlay">
+            <div className="matrixRequiredPopup">
+              <h3>Run the Zig-Zag Scan</h3>
+              <p>Please run "Run Zig-Zag Scan" on the full block before proceeding to the next step.</p>
+              <button type="button" onClick={() => setShowZigZagRequiredPopup(false)}>
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+        {showRleRequiredPopup && (
+          <div className="matrixRequiredOverlay">
+            <div className="matrixRequiredPopup">
+              <h3>Run RLE Encoding</h3>
+              <p>Please run "Run Run-Length Encoding" before proceeding to the next step.</p>
+              <button type="button" onClick={() => setShowRleRequiredPopup(false)}>
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+        {showHuffmanRequiredPopup && (
+          <div className="matrixRequiredOverlay">
+            <div className="matrixRequiredPopup">
+              <h3>Run Huffman Encoding</h3>
+              <p>Please run "Run Huffman Encoding" before proceeding to the next step.</p>
+              <button type="button" onClick={() => setShowHuffmanRequiredPopup(false)}>
+                OK
+              </button>
+            </div>
+          </div>
+        )}
         <div className="headerBar">
           <div className="headerTitle">JPEG Compression Visualizer</div>
 
@@ -471,46 +698,16 @@ function goToStep(stepId) {
           </div>
         </div>
 
-        <div
-          className={`stepNavigator ${
-            activeStep === 0 ? "startStepNavigator" : ""
-          }`}
-        >
-          <button
-            className="navBtn"
-            type="button"
-            onClick={prevStep}
-            disabled={!started || isFirstStep}
-          >
-            ❮
-          </button>
-
-          <div className="stepText">
-            {activeStep === 0
-              ? "Ready to Start JPEG Compression Simulation"
-              : `Step ${activeStep} of ${steps.length} • ${currentStep?.title}`}
-          </div>
-
-          <button
-            className="navBtn"
-            type="button"
-            onClick={nextStep}
-            disabled={!started || isLastStep}
-          >
-            ❯
-          </button>
-        </div>
-
         <div className="contentArea">
           <div className="leftPanel">
             <h2 className="stepsHeading">Steps</h2>
 
             <p className="stepsSubtitle">
-              12-step JPEG encoding workflow
+              11-step JPEG encoding workflow
             </p>
 
             <ul className="stepsList">
-  {steps.map((step) => {
+  {steps.filter((step) => step.id !== 8).map((step, index) => {
     const isLocked = !started || step.id > maxUnlockedStep;
 
     return (
@@ -531,7 +728,7 @@ function goToStep(stepId) {
           }
         }}
       >
-        <span className="stepCircle">{step.id}</span>
+        <span className="stepCircle">{index + 1}</span>
         {step.title}
       </li>
     );
@@ -555,94 +752,14 @@ function goToStep(stepId) {
                 Next
               </button>
 
-              <button
-                type="button"
-                onClick={startSimulation}
-                disabled={started}
-              >
-                {started ? "Started" : "Start"}
-              </button>
             </div>
           </div>
 
           <div className="visualPanel">
             <div className="stepWorkspace">
-              <h2>
-                {activeStep === 0
-                  ? "JPEG Compression Simulation"
-                  : currentStep?.title}
-              </h2>
+              <h2>{currentStep?.title}</h2>
 
-              {activeStep === 0 && (
-               <p className="startPageSubtitle">
-  DCT-based Baseline Sequential JPEG Encoding Workflow
-</p>
-              )}
-
-              {activeStep === 0 ? (
-                <div className="ioContainer startPageFlow">
-                 <div className="ioBox welcomeInputBox">
-  <h3>Input</h3>
-
- <div className="ioContent">
-  Fixed 24-bit RGB Image Patch / 16×16 Sample Matrix
-</div>
-
-  <WelcomeMatrixPreview values={activeRgbMatrix} />
-</div>
-
-                  <div className="ioArrow">↓</div>
-
-                 <div className="ioBox processOverviewBox">
-  <h3>Process</h3>
-
-  <div className="ioContent">
-    <b>JPEG Compression Pipeline</b>
-    <br />
-    Color Preparation
-    <br />
-    <span className="processSmallText">RGB → YCbCr + Subsampling</span>
-    <br />
-    ↓
-    <br />
-    Block Preparation
-    <br />
-    <span className="processSmallText">16×16 Patch → 8×8 Blocks + Level Shifting</span>
-    <br />
-    ↓
-    <br />
-    Transform Coding
-    <br />
-    <span className="processSmallText">2D DCT / FDCT</span>
-    <br />
-    ↓
-    <br />
-    Quantization
-    <br />
-    ↓
-    <br />
-    Entropy Encoding
-    <br />
-    <span className="processSmallText">
-      DC Difference + Zig-Zag + RLE + Huffman
-    </span>
-  </div>
-</div>
-                  <div className="ioArrow">↓</div>
-
-                  <div className="ioBox">
-                    <h3>Output</h3>
-                    <div className="ioContent">
-                      Compressed JPEG Bitstream / Image Data
-                    </div>
-                  </div>
-
-                  <div className="startGoalBox">
-  Goal: Reduce image size by removing visually less important information while
-  preserving acceptable visual quality.
-</div>
-                </div>
-              ) : activeStep === 1 ? (
+              {activeStep === 1 ? (
   <Step1RGBInput
     rgbMatrixPresets={rgbMatrixPresets}
     selectedMatrixType={selectedMatrixType}
@@ -658,9 +775,6 @@ function goToStep(stepId) {
     RGBPixelMatrix={RGBPixelMatrix}
     RGBTupleMatrix={RGBTupleMatrix}
     ChannelMatrix={ChannelMatrix}
-    realPhotoStatus={realPhotoStatus}
-    onSelectRealPhoto={handleRealPhotoSelect}
-    realPhotoCrop={REAL_PHOTO_CROP}
   />
   ) : activeStep === 2 ? (
   <Step2YCbCrConversion
@@ -675,9 +789,7 @@ function goToStep(stepId) {
     convertedPixelIndexes={convertedPixelIndexes}
     isAutoConverting={isAutoConverting}
     showSelectedCalculation={showSelectedCalculation}
-    convertSelectedPixelOnly={convertSelectedPixelOnly}
     autoConvertFullMatrix={autoConvertFullMatrix}
-    resetStep2Conversion={resetStep2Conversion}
     RGBTupleMatrix={RGBTupleMatrix}
     RevealedChannelMatrix={RevealedChannelMatrix}
   />
@@ -695,45 +807,84 @@ function goToStep(stepId) {
   <Step4DivideBlocks
     yMatrix={yMatrix}
     onSelectedBlockChange={setSelectedBlockData}
+    selectedBlockIndex={step4SelectedBlockIndex}
+    setSelectedBlockIndex={setStep4SelectedBlockIndex}
+    revealedIndexes={step4RevealedIndexes}
+    setRevealedIndexes={setStep4RevealedIndexes}
   />
 ) : activeStep === 5 ? (
   <Step5LevelShifting
     selectedBlockData={selectedBlockData}
     onLevelShiftChange={setLevelShiftData}
+    selectedCellIndex={step5SelectedCellIndex}
+    setSelectedCellIndex={setStep5SelectedCellIndex}
+    revealedIndexes={step5RevealedIndexes}
+    setRevealedIndexes={setStep5RevealedIndexes}
+    isAutoShifting={step5IsAutoShifting}
+    setIsAutoShifting={setStep5IsAutoShifting}
   />
 ) : activeStep === 6 ? (
  <Step6DCTTransform
   selectedBlockData={selectedBlockData}
   levelShiftData={levelShiftData}
   onDctChange={setDctData}
+  selectedCoefficientIndex={step6SelectedCoefficientIndex}
+  setSelectedCoefficientIndex={setStep6SelectedCoefficientIndex}
+  revealedIndexes={step6RevealedIndexes}
+  setRevealedIndexes={setStep6RevealedIndexes}
+  isAutoApplying={step6IsAutoApplying}
+  setIsAutoApplying={setStep6IsAutoApplying}
 />
 ) : activeStep === 7 ? (
   <Step7Quantization
     dctData={dctData}
     onQuantizationChange={setQuantizationData}
-  />
-) : activeStep === 8 ? (
-  <Step8DCDifferenceCoding
-    quantizationData={quantizationData}
-    onDcCodingChange={setDcCodingData}
+    selectedIndex={step7SelectedIndex}
+    setSelectedIndex={setStep7SelectedIndex}
+    revealedIndexes={step7RevealedIndexes}
+    setRevealedIndexes={setStep7RevealedIndexes}
+    isAutoQuantizing={step7IsAutoQuantizing}
+    setIsAutoQuantizing={setStep7IsAutoQuantizing}
+    quality={step7Quality}
+    setQuality={setStep7Quality}
   />
 ) : activeStep === 9 ? (
   <Step9ZigZagScanning
     quantizationData={quantizationData}
     dcCodingData={dcCodingData}
     onZigZagChange={setZigZagData}
+    scanIndex={step9ScanIndex}
+    setScanIndex={setStep9ScanIndex}
+    scannedIndexes={step9ScannedIndexes}
+    setScannedIndexes={setStep9ScannedIndexes}
+    isAutoScanning={step9IsAutoScanning}
+    setIsAutoScanning={setStep9IsAutoScanning}
   />
 ) : activeStep === 10 ? (
   <Step10RunLengthEncoding
     zigZagData={zigZagData}
     dcCodingData={dcCodingData}
     onRleChange={setRleData}
+    selectedIndex={step10SelectedIndex}
+    setSelectedIndex={setStep10SelectedIndex}
+    encodedUpTo={step10EncodedUpTo}
+    setEncodedUpTo={setStep10EncodedUpTo}
+    isAutoEncoding={step10IsAutoEncoding}
+    setIsAutoEncoding={setStep10IsAutoEncoding}
+    setComplete={setStep10Complete}
   />
 ) : activeStep === 11 ? (
   <Step11HuffmanEncoding
     dcCodingData={dcCodingData}
     rleData={rleData}
     onHuffmanChange={setHuffmanData}
+    isDcEncoded={step11IsDcEncoded}
+    setIsDcEncoded={setStep11IsDcEncoded}
+    acEncodedUpTo={step11AcEncodedUpTo}
+    setAcEncodedUpTo={setStep11AcEncodedUpTo}
+    isAutoEncoding={step11IsAutoEncoding}
+    setIsAutoEncoding={setStep11IsAutoEncoding}
+    setComplete={setStep11Complete}
   />
 ) : activeStep === 12 ? (
   <Step12FinalOutput
@@ -742,6 +893,8 @@ function goToStep(stepId) {
     dcCodingData={dcCodingData}
     quantizationData={quantizationData}
     originalBlockData={selectedBlockData}
+    isGenerated={step12IsGenerated}
+    setIsGenerated={setStep12IsGenerated}
   />
 ) : (
                 <div className="ioContainer">
@@ -770,9 +923,7 @@ function goToStep(stepId) {
   <h3>Explanation</h3>
 
   <p>
-    {activeStep === 0
-      ? "This simulation demonstrates Baseline Sequential JPEG encoding using a fixed 16×16 RGB sample patch. Each pixel is represented as [R, G, B] with 8-bit values from 0 to 255. The patch is converted into Y, Cb and Cr matrices, chroma data is reduced, and the Y component is divided into 8×8 blocks. A selected 8×8 block is then processed through level shifting, DCT, quantization, DC difference coding, zig-zag scanning, run-length encoding and Huffman encoding."
-      : activeStep === 1
+    {activeStep === 1
       ? "JPEG encoding starts with a 24-bit RGB image. In this simulation, the input image is represented as a fixed 16×16 RGB sample patch containing 256 pixels. Each pixel is stored as [R, G, B], where Red, Green and Blue are 8-bit component values in the range 0 to 255. This RGB patch is separated into R, G and B component matrices before RGB to YCbCr conversion."
       : activeStep === 2
       ? "In this step, the same 16×16 RGB sample patch from Step 1 is converted into 16×16 Y, Cb and Cr matrices. Y stores luminance or brightness information, while Cb and Cr store chrominance or color-difference information. This separation is useful in JPEG because the human eye is more sensitive to luminance than chrominance, so Cb and Cr color information can be reduced in the next step."
